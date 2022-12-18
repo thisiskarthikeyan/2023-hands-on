@@ -1,10 +1,13 @@
 # Competitive Hands-On Training - 2023 Q1
 # Snowflake
 ## Setup
-URL
-    https://of53892.us-east-1.snowflakecomputing.com/
+https://of53892.us-east-1.snowflakecomputing.com/
 Username
-    tdalpha
+```
+tdalpha
+```
 Password
-    17095ViaDelCampo
+```
+17095ViaDelCampo
+```
 
