@@ -3,12 +3,4 @@
 ## Setup
 https://of53892.us-east-1.snowflakecomputing.com/
 
-Username
-```
-tdalpha
-```
-Password
-```
-17095ViaDelCampo
-```
 
