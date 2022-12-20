@@ -6,20 +6,19 @@ https://of53892.us-east-1.snowflakecomputing.com/
 
 ## Hands-On
 
-### Create Warehouse
-```
-create or replace warehouse tdalpha 
+### Create Warehouse, Database, and Tables
+```sql
+set MYNAME='NAME_FOR_YOUR_STUFF';
+
+create or replace warehouse identifier($MYNAME) 
     warehouse_size=xsmall
     initially_suspended=true
     min_cluster_count=1
     max_cluster_count=1
     auto_suspend=300;
-```
 
-### Create Database and Tables
-```
-create or replace database tdalpha;
-use tdalpha;
+create or replace database identifier($MYNAME);
+use identifier($MYNAME);
 
 --nation
 create or replace table nation
