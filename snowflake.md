@@ -849,7 +849,7 @@ order by
 
 ### Clustering
 
-<details><p>
+<details>
 
 ```sql
 create or replace schema clustered clone public;
@@ -871,5 +871,5 @@ select * from public.lineitem where l_shipdate = '1998-01-01';
 select * from clustered.lineitem where l_shipdate = '1998-01-01';
 ```
 
-</p></details>
+</details>
 
