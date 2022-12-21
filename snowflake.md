@@ -7,6 +7,9 @@ https://of53892.us-east-1.snowflakecomputing.com/
 ## Databases and DDL
 
 ### Create Warehouse, Database, and Tables
+
+<details><p>
+
 ```sql
 set MYNAME='NAME_FOR_YOUR_STUFF';
 
@@ -134,9 +137,14 @@ group by
     l_suppkey;
 ```
 
+</p></details>
+
 ## Loading Data
 
 ### Directly from S3
+
+<details><p>
+
 ```sql
 create or replace file format abench_filefmt
 	type = 'CSV'
@@ -171,6 +179,8 @@ select 'partsupp' entity, count(*) from partsupp union all
 select 'region' entity, count(*) from region union all
 select 'supplier' entity, count(*) from supplier order by 2;
 ```
+
+</p></details>
 
 ## Running Queries
 
@@ -838,6 +848,9 @@ order by
 </p></details>
 
 ### Clustering
+
+<details><p>
+
 ```sql
 create or replace schema clustered clone public;
 use tdalpha.clustered;
@@ -857,3 +870,6 @@ select system$clustering_information('ordertbl');
 select * from public.lineitem where l_shipdate = '1998-01-01';
 select * from clustered.lineitem where l_shipdate = '1998-01-01';
 ```
+
+</p></details>
+
