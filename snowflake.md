@@ -831,3 +831,24 @@ where
 order by
     s_suppkey;
 ```
+
+### Clustering
+```sql
+create or replace schema clustered clone public;
+use tdalpha.clustered;
+
+alter table lineitem cluster by (l_shipdate);
+alter table ordertbl cluster by (o_orderdate);
+
+show tables like 'lineitem';
+show tables like 'ordertbl';
+
+select system$clustering_depth('lineitem') union all
+select system$clustering_depth('ordertbl');
+
+select system$clustering_information('lineitem') union all
+select system$clustering_information('ordertbl');
+
+select * from public.lineitem where l_shipdate = '1998-01-01';
+select * from clustered.lineitem where l_shipdate = '1998-01-01';
+```
