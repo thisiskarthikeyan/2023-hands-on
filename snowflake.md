@@ -175,7 +175,9 @@ select 'supplier' entity, count(*) from supplier order by 2;
 ## Running Queries
 
 ### TPC-H 30GB Stream
+
 <details><p>
+
 ```sql
 /* TPC_H  Query 6 - Forecasting Revenue Change */
 select /* tdb=TPCH_Q06 */
@@ -832,6 +834,7 @@ where
 order by
     s_suppkey;
 ```
+
 </p></details>
 
 ### Clustering
