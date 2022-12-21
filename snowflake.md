@@ -8,7 +8,7 @@ https://of53892.us-east-1.snowflakecomputing.com/
 
 ### Create Warehouse, Database, and Tables
 
-<details><p>
+<details>
 
 ```sql
 set MYNAME='NAME_FOR_YOUR_STUFF';
@@ -137,13 +137,13 @@ group by
     l_suppkey;
 ```
 
-</p></details>
+</details>
 
 ## Loading Data
 
 ### Directly from S3
 
-<details><p>
+<details>
 
 ```sql
 create or replace file format abench_filefmt
@@ -180,13 +180,13 @@ select 'region' entity, count(*) from region union all
 select 'supplier' entity, count(*) from supplier order by 2;
 ```
 
-</p></details>
+</details>
 
 ## Running Queries
 
 ### TPC-H 30GB Stream
 
-<details><p>
+<details>
 
 ```sql
 /* TPC_H  Query 6 - Forecasting Revenue Change */
@@ -845,7 +845,7 @@ order by
     s_suppkey;
 ```
 
-</p></details>
+</details>
 
 ### Clustering
 
