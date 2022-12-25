@@ -1,10 +1,10 @@
 # Competitive Hands-On Training - 2023 Q1
 # Snowflake
 
-## Setup
+## Login
 https://of53892.us-east-1.snowflakecomputing.com/
 
-## Databases and DDL
+## Basic Functionality
 
 ### Create Warehouse, Database, and Tables
 
@@ -142,9 +142,7 @@ select get_ddl('view', 'revenue0');
 
 </details>
 
-## Loading Data
-
-### Directly from S3
+### Loading Data (Directly from S3)
 
 <details>
 
@@ -185,9 +183,7 @@ select 'supplier' entity, count(*) from supplier order by 2;
 
 </details>
 
-## Running Queries
-
-### TPC-H 30GB Stream
+### Running Queries (TPC-H 30GB Stream)
 
 <details>
 
@@ -867,9 +863,7 @@ order by start_time;
 
 </details>
 
-## Designing Tables
-
-### Clustering
+### Designing Tables (Clustering)
 
 <details>
 
