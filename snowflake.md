@@ -135,6 +135,9 @@ where
     l_shipdate >= '1996-01-01' and l_shipdate < dateadd(month, 3, '1996-01-01')
 group by
     l_suppkey;
+
+select get_ddl('table', 'lineitem');
+select get_ddl('view', 'revenue0');
 ```
 
 </details>
@@ -847,6 +850,25 @@ order by
 
 </details>
 
+### Query History
+
+<details>
+
+```sql
+select 
+  *
+from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
+where 
+  end_time between 
+    to_timestamp_tz('2023-01-31 00:00:00 -0000') 
+    and to_timestamp_tz('2023-02-04 23:59:59 -0000') 
+order by start_time;
+```
+
+</details>
+
+## Designing Tables
+
 ### Clustering
 
 <details>
@@ -873,3 +895,96 @@ select * from clustered.lineitem where l_shipdate = '1998-01-01';
 
 </details>
 
+## Performance Features
+
+### Results Cache
+
+<details>
+
+```sql
+alter account set use_cached_result = false; -- Requires ACCOUNTADMIN role
+alter user TDALPHA set use_cached_result = false;
+```
+
+</details>
+
+### Multi-clusters
+
+<details>
+
+```sql
+alter warehouse TDALPHA set max_concurrency_level = 32;
+
+alter warehouse TDALPHA set min_cluster_count = 1 max_cluster_count = 3;
+
+alter warehouse TDALPHA set scaling_policy = 'ECONOMY';
+
+select 
+  cluster_number,
+  sum(execution_time/1000),
+  sum(queued_overload_time/1000)
+from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
+where 
+  end_time between 
+    to_timestamp_tz('2022-12-24 20:11:16 -0000') 
+    and to_timestamp_tz('2022-12-24 20:15:04 -0000') 
+group by 1
+order by 1;
+```
+
+</details>
+
+### Transparent Materialized Views
+
+<details>
+
+```sql
+create materialized view mv_q18
+as
+select
+   l_orderkey, 
+   sum(l_quantity) sum_lq,
+   count(l_quantity) count_lq,
+   count(*) count_grp
+from
+   lineitem
+group by
+   l_orderkey;
+
+/* TPC_H  Query 18 - Large Volume Customer */
+select /* tdb=TPCH_Q18 */
+    c_name,
+    c_custkey,
+    o_orderkey,
+    o_orderdate,
+    o_totalprice,
+    sum(l_quantity)
+from
+    customer,
+    ordertbl,
+    lineitem
+where
+    o_orderkey in (
+        select
+            l_orderkey
+        from
+            lineitem
+        group by
+            l_orderkey having
+                sum(l_quantity) > 300
+    )
+    and c_custkey = o_custkey
+    and o_orderkey = l_orderkey
+group by
+    c_name,
+    c_custkey,
+    o_orderkey,
+    o_orderdate,
+    o_totalprice
+order by
+    o_totalprice desc,
+    o_orderdate
+limit 100;
+```
+
+</details>
