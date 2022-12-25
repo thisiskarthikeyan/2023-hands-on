@@ -982,3 +982,24 @@ limit 100;
 ```
 
 </details>
+
+### Search Optimization Service
+
+<details>
+
+```sql
+select approx_count_distinct(o_clerk) from ordertbl;
+
+select o_clerk, count(*) cnt from ordertbl group by o_clerk order by cnt desc;
+
+select * from ordertbl where o_clerk in ('Clerk#000007320','Clerk#000024529','Clerk#000007341');
+select * from ordertbl where o_clerk like 'Clerk#000007%';
+
+alter table ordertbl add search optimization on equality(o_clerk);
+show tables like 'ordertbl';
+
+alter table ordertbl drop search optimization;
+alter table ordertbl add search optimization on equality(o_clerk), substring(o_clerk);
+```
+
+</details>
