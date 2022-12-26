@@ -1156,4 +1156,34 @@ order by
     o_year desc;
 ```
 
+### Snowpark
+
+<details>
+
+```bash
+conda create --name py38_env --override-channels -c https://repo.anaconda.com/pkgs/snowflake python=3.8 numpy pandas
+conda activate py38_env
+pip install notebook
+pip install snowflake-snowpark-python
+jupyter notebook
+```
+```python
+from snowflake.snowpark import Session
+connection_parameters = {
+    "account": "of53892.us-east-1",
+    "user": "tdalpha",
+    "password": "17095ViaDelCampo",
+    "role": "sysadmin",
+    "warehouse": "tdalpha",
+    "database": "tdalpha",
+    "schema": "public",
+  }  
+
+session = Session.builder.configs(connection_parameters).create()  
+
+session.sql("select count(*) from customer").collect()
+```
+
+
+</details>
 </details>
