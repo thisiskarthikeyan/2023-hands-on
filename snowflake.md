@@ -1061,6 +1061,34 @@ select * from customer limit 100;
 
 </details>
 
+### Time Travel
+
+<details>
+
+```sql
+show tables like 'ordertbl';
+
+select count(*) from ordertbl;
+
+delete from ordertbl where o_orderkey < 1000;
+
+select count(*) from ordertbl;
+
+select count(*) from ordertbl at(offset => -60*5);
+
+create table restored_ordertbl clone ordertbl
+  at(offset => -60*5);
+
+select count(*) from restored_ordertbl;
+
+drop table ordertbl;
+
+alter table restored_ordertbl rename to ordertbl;
+
+select count(*) from ordertbl;
+```
+
+</details>
 
 ### Snowsight Dashboards
 
