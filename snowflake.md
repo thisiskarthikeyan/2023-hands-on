@@ -1060,3 +1060,100 @@ select * from customer limit 100;
 ```
 
 </details>
+
+
+### Snowsight Dashboards
+
+<details>
+
+```sql
+/* TPC_H  Query 3 - Shipping Priority */
+select /* tdb=TPCH_Q03 */
+    l_orderkey,
+    sum(l_extendedprice * (1 - l_discount)) as revenue,
+    o_orderdate,
+    o_shippriority
+from
+    customer,
+    ordertbl,
+    lineitem
+where
+    trim(c_mktsegment) = 'BUILDING'
+    and c_custkey = o_custkey
+    and l_orderkey = o_orderkey
+    and o_orderdate < '1995-03-15'
+    and l_shipdate > '1995-03-15'
+group by
+    l_orderkey,
+    o_orderdate,
+    o_shippriority
+order by
+    revenue desc,
+    o_orderdate
+limit 100;
+
+/* TPC_H  Query 18 - Large Volume Customer */
+select /* tdb=TPCH_Q18 */
+    c_name,
+    sum(o_totalprice),
+    sum(l_quantity)
+from
+    customer,
+    ordertbl,
+    lineitem
+where
+    o_orderkey in (
+        select
+            l_orderkey
+        from
+            lineitem
+        group by
+            l_orderkey having
+                sum(l_quantity) > 300
+    )
+    and c_custkey = o_custkey
+    and o_orderkey = l_orderkey
+group by
+    c_name
+order by
+    sum(o_totalprice) desc
+limit 100;
+
+/* TPC_H  Query 9 - Product Type Profit Measure */
+select /* tdb=TPCH_Q09 */
+    nation,
+    o_year,
+    sum(amount) as sum_profit
+from (
+    select
+        n_name as nation,
+        extract(year from o_orderdate) as o_year,
+        l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
+    from
+        parttbl,
+        supplier,
+        lineitem,
+        partsupp,
+        ordertbl,
+        nation
+    where
+        s_suppkey = l_suppkey
+        and ps_suppkey = l_suppkey
+        and ps_partkey = l_partkey
+        and p_partkey = l_partkey
+        and o_orderkey = l_orderkey
+        and s_nationkey = n_nationkey
+        and p_name like '%green%'
+        and n_nationkey < 5
+    ) as profit
+where
+    o_year < 1998
+group by
+    nation,
+    o_year
+order by
+    nation,
+    o_year desc;
+```
+
+</details>
