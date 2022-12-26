@@ -1156,6 +1156,8 @@ order by
     o_year desc;
 ```
 
+</details>
+
 ### Snowpark
 
 <details>
@@ -1184,6 +1186,4 @@ session = Session.builder.configs(connection_parameters).create()
 session.sql("select count(*) from customer").collect()
 ```
 
-
-</details>
 </details>
