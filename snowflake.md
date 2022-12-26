@@ -1003,3 +1003,60 @@ alter table ordertbl add search optimization on equality(o_clerk), substring(o_c
 ```
 
 </details>
+
+## Usability Features
+
+### External Tables
+
+<details>
+
+```sql
+create or replace schema ext;
+
+create or replace external table ext.customer
+     (
+      c_custkey integer as (value:c1::int),
+      c_name varchar(25) as (value:c2::varchar),
+      c_address varchar(40) as (value:c3::varchar),
+      c_nationkey integer as (value:c4::int),
+      c_phone varchar(15) as (value:c5::varchar),
+      c_acctbal decimal(15,2) as (value:c6::number),
+      c_mktsegment char(10) as (value:c7::varchar),
+      c_comment varchar(117) as (value:c8::varchar)
+     )
+ with 
+    location = @public.abench_s3_stage
+    file_format = public.abench_filefmt
+    pattern = '.*customer.*';
+ 
+ select * from public.customer;
+ select * from ext.customer;
+ ```
+
+</details>
+
+### Dynamic Data Masking
+
+<details>
+
+```sql
+create or replace masking policy name_mask as (val string) returns string ->
+  case
+    when current_role() in ('SECURITYADMIN') then val
+    else '*********'
+  end;
+  
+  alter table customer modify column c_name set masking policy name_mask;
+  
+  select * from customer limit 100;
+  
+  alter masking policy name_mask set body ->
+  case
+    when current_role() in ('SYSADMIN') then val
+    else '*********'
+  end;
+
+select * from customer limit 100;
+```
+
+</details>
