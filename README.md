@@ -3,7 +3,7 @@
 Welcome to the 2023 Competitive Hands-On Training for the following cloud data warehouse platforms:
 
 - [Snowflake](snowflake.md)
-- Amazon Redshift
+- [Amazon Redshift](redshift.md)
 - Google BigQuery
 - Azure Synapse Analytics
 - Databricks

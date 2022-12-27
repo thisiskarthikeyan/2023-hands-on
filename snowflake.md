@@ -137,6 +137,7 @@ group by
     l_suppkey;
 
 select get_ddl('table', 'lineitem');
+
 select get_ddl('view', 'revenue0');
 ```
 
