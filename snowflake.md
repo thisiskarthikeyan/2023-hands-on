@@ -1191,6 +1191,8 @@ order by
 <details>
 
 ```bash
+wget https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
+bash Anaconda3-2022.10-Linux-x86_64.sh
 conda create --name py38_env --override-channels -c https://repo.anaconda.com/pkgs/snowflake python=3.8 numpy pandas
 conda activate py38_env
 pip install notebook
