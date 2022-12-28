@@ -713,6 +713,8 @@ order by
 
 ```sql
 select * from SYS_QUERY_HISTORY;
+
+select * from STL_QUERY; -- Provisioned Clusters only
 ```
 
 </details>
@@ -722,6 +724,8 @@ select * from SYS_QUERY_HISTORY;
 <details>
 
 Requires PSQL CLI
+
+Works with Provisioned Clusters only
 
 ```bash
 export PGDATABASE=tpch
@@ -1009,6 +1013,19 @@ order by segment, step;
 
 </details>
 
+### Results Cache
+
+<details>
+
+```sql
+set enable_result_cache_for_session to off;
+alter user benchmark set enable_result_cache_for_session to off;
+```
+
+</details>
+
+## Performance Features
+
 ### Designing Tables (Sort and Distribution Keys)
 
 <details>
@@ -1040,20 +1057,7 @@ alter table lineitem alter diststyle key distkey l_orderkey;
 
 </details>
 
-## Performance Features
-
-### Results Cache
-
-<details>
-
-```sql
-set enable_result_cache_for_session to off;
-alter user benchmark set enable_result_cache_for_session to off;
-```
-
-</details>
-
-### Multi-clusters
+### Concurrency Scaling
 
 <details>
 
