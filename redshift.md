@@ -1062,23 +1062,15 @@ alter table lineitem alter diststyle key distkey l_orderkey;
 <details>
 
 ```sql
-alter warehouse TDALPHA set max_concurrency_level = 32;
-
-alter warehouse TDALPHA set min_cluster_count = 1 max_cluster_count = 3;
-
-alter warehouse TDALPHA set scaling_policy = 'ECONOMY';
-
 select 
-  cluster_number,
-  sum(execution_time/1000),
-  sum(queued_overload_time/1000)
-from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
+    concurrency_scaling_status, 
+    count(*) 
+from STL_QUERY 
 where 
-  end_time between 
-    to_timestamp_tz('2022-12-24 20:11:16 -0000') 
-    and to_timestamp_tz('2022-12-24 20:15:04 -0000') 
-group by 1
-order by 1;
+    starttime > '2022-12-28 22:52:07' 
+    and querytxt like '%tdb=%' 
+group by 
+    concurrency_scaling_status; 
 ```
 
 </details>
@@ -1134,27 +1126,6 @@ order by
     o_totalprice desc,
     o_orderdate
 limit 100;
-```
-
-</details>
-
-### Search Optimization Service
-
-<details>
-
-```sql
-select approx_count_distinct(o_clerk) from ordertbl;
-
-select o_clerk, count(*) cnt from ordertbl group by o_clerk order by cnt desc;
-
-select * from ordertbl where o_clerk in ('Clerk#000007320','Clerk#000024529','Clerk#000007341');
-select * from ordertbl where o_clerk like 'Clerk#000007%';
-
-alter table ordertbl add search optimization on equality(o_clerk);
-show tables like 'ordertbl';
-
-alter table ordertbl drop search optimization;
-alter table ordertbl add search optimization on equality(o_clerk), substring(o_clerk);
 ```
 
 </details>
@@ -1216,132 +1187,7 @@ select * from customer limit 100;
 
 </details>
 
-### Time Travel
-
-<details>
-
-```sql
-show tables like 'ordertbl';
-
-select count(*) from ordertbl;
-
-delete from ordertbl where o_orderkey < 1000;
-
-select count(*) from ordertbl;
-
-select count(*) from ordertbl at(offset => -60*5);
-
-create table restored_ordertbl clone ordertbl
-  at(offset => -60*5);
-
-select count(*) from restored_ordertbl;
-
-drop table ordertbl;
-
-alter table restored_ordertbl rename to ordertbl;
-
-select count(*) from ordertbl;
-```
-
-</details>
-
-### Snowsight Dashboards
-
-<details>
-
-```sql
-/* TPC_H  Query 3 - Shipping Priority */
-select /* tdb=TPCH_Q03 */
-    l_orderkey,
-    sum(l_extendedprice * (1 - l_discount)) as revenue,
-    o_orderdate,
-    o_shippriority
-from
-    customer,
-    ordertbl,
-    lineitem
-where
-    trim(c_mktsegment) = 'BUILDING'
-    and c_custkey = o_custkey
-    and l_orderkey = o_orderkey
-    and o_orderdate < '1995-03-15'
-    and l_shipdate > '1995-03-15'
-group by
-    l_orderkey,
-    o_orderdate,
-    o_shippriority
-order by
-    revenue desc,
-    o_orderdate
-limit 100;
-
-/* TPC_H  Query 18 - Large Volume Customer */
-select /* tdb=TPCH_Q18 */
-    c_name,
-    sum(o_totalprice),
-    sum(l_quantity)
-from
-    customer,
-    ordertbl,
-    lineitem
-where
-    o_orderkey in (
-        select
-            l_orderkey
-        from
-            lineitem
-        group by
-            l_orderkey having
-                sum(l_quantity) > 300
-    )
-    and c_custkey = o_custkey
-    and o_orderkey = l_orderkey
-group by
-    c_name
-order by
-    sum(o_totalprice) desc
-limit 100;
-
-/* TPC_H  Query 9 - Product Type Profit Measure */
-select /* tdb=TPCH_Q09 */
-    nation,
-    o_year,
-    sum(amount) as sum_profit
-from (
-    select
-        n_name as nation,
-        extract(year from o_orderdate) as o_year,
-        l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
-    from
-        parttbl,
-        supplier,
-        lineitem,
-        partsupp,
-        ordertbl,
-        nation
-    where
-        s_suppkey = l_suppkey
-        and ps_suppkey = l_suppkey
-        and ps_partkey = l_partkey
-        and p_partkey = l_partkey
-        and o_orderkey = l_orderkey
-        and s_nationkey = n_nationkey
-        and p_name like '%green%'
-        and n_nationkey < 5
-    ) as profit
-where
-    o_year < 1998
-group by
-    nation,
-    o_year
-order by
-    nation,
-    o_year desc;
-```
-
-</details>
-
-### Snowpark
+### Python UDF
 
 <details>
 
@@ -1355,19 +1201,6 @@ pip install snowflake-snowpark-python
 jupyter notebook
 ```
 ```python
-from snowflake.snowpark import Session
-connection_parameters = {
-    "account": "of53892.us-east-1",
-    "user": "tdalpha",
-    "password": "17095ViaDelCampo",
-    "role": "sysadmin",
-    "warehouse": "tdalpha",
-    "database": "tdalpha",
-    "schema": "public",
-  }  
-
-session = Session.builder.configs(connection_parameters).create()  
-
 session.sql("select count(*) from customer").collect()
 ```
 
