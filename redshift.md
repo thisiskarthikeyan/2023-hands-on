@@ -151,8 +151,8 @@ delimiter as '|' ;
 select 'customer' entity, count(*) from CUSTOMER union all
 select 'lineitem' entity, count(*) from LINEITEM union all
 select 'nation' entity, count(*) from NATION union all
-select 'orders' entity, count(*) from ORDERS union all
-select 'part' entity, count(*) from PART union all
+select 'ordertbl' entity, count(*) from ORDERTBL union all
+select 'parttbl' entity, count(*) from PARTTBL union all
 select 'partsupp' entity, count(*) from PARTSUPP union all
 select 'region' entity, count(*) from REGION union all
 select 'supplier' entity, count(*) from SUPPLIER order by 2;
@@ -729,7 +729,7 @@ export PGHOST=tdalpha.c3r0s0svrewi.us-east-1.redshift.amazonaws.com
 export PGPORT=5439
 export PGUSER=tdalpha
 export PGPASSWORD=17095ViaDelCampo
-psql -v qid=200804 -f rs-sqlmon.sql > rs-sqlmon.html
+psql -v qid=<query ID> -f rs-sqlmon.sql > <outfile>.html
 ```
 
 rs-sqlmon.sql
@@ -1009,28 +1009,33 @@ order by segment, step;
 
 </details>
 
-### Designing Tables (Clustering)
+### Designing Tables (Sort and Distribution Keys)
 
 <details>
 
 ```sql
-create or replace schema clustered clone public;
-use tdalpha.clustered;
+alter table ordertbl alter sortkey auto;
+alter table ordertbl alter diststyle auto;
 
-alter table lineitem cluster by (l_shipdate);
-alter table ordertbl cluster by (o_orderdate);
+alter table lineitem alter sortkey auto;
+alter table lineitem alter diststyle auto;
 
-show tables like 'lineitem';
-show tables like 'ordertbl';
+create schema keys;
+set search_path to keys;
 
-select system$clustering_depth('lineitem') union all
-select system$clustering_depth('ordertbl');
+create table customer as select * from public.CUSTOMER;
+create table lineitem as select * from public.LINEITEM;
+create table nation as select * from public.NATION;
+create table ordertbl as select * from public.ORDERTBL;
+create table parttbl as select * from public.PARTTBL;
+create table partsupp as select * from public.PARTSUPP;
+create table region as select * from public.REGION;
+create table supplier as select * from public.SUPPLIER;
 
-select system$clustering_information('lineitem') union all
-select system$clustering_information('ordertbl');
-
-select * from public.lineitem where l_shipdate = '1998-01-01';
-select * from clustered.lineitem where l_shipdate = '1998-01-01';
+alter table ordertbl alter sortkey (o_orderdate);
+alter table lineitem alter sortkey (l_shipdate);
+alter table ordertbl alter diststyle key distkey o_orderkey;
+alter table lineitem alter diststyle key distkey l_orderkey;
 ```
 
 </details>
