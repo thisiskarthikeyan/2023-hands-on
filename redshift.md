@@ -264,7 +264,7 @@ where l_partkey = p_partkey and
 
 
 select 
-/* tdb=tpch_q03 */
+/* tdb=TPCH_Q03 */
  l_orderkey,
  sum(l_extendedprice*(1-l_discount)) as revenue,
  o_orderdate, o_shippriority
@@ -488,7 +488,7 @@ order by o_orderpriority;
 
 
 select 
-/* tdb=TPCH_q11 */
+/* tdb=TPCH_Q11 */
 ps_partkey,
  sum(ps_supplycost*ps_availqty) as value
 from partsupp,
@@ -1062,15 +1062,17 @@ alter table lineitem alter diststyle key distkey l_orderkey;
 <details>
 
 ```sql
-select 
+select
+    split_part(split_part(querytxt,'tdb=', 2), ' ', 1) as qrynum, 
     concurrency_scaling_status, 
     count(*) 
 from STL_QUERY 
 where 
-    starttime > '2022-12-28 22:52:07' 
+    starttime > '2022-12-29 19:09:35' 
     and querytxt like '%tdb=%' 
 group by 
-    concurrency_scaling_status; 
+    qrynum, 
+    concurrency_scaling_status;
 ```
 
 </details>
@@ -1132,32 +1134,68 @@ limit 100;
 
 ## Usability Features
 
-### External Tables
+### Redshift Spectrum (External Tables)
 
 <details>
 
 ```sql
-create or replace schema ext;
+create external schema ext 
+from data catalog 
+database 'extdb' 
+iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole' 
+create external database if not exists;
 
-create or replace external table ext.customer
-     (
-      c_custkey integer as (value:c1::int),
-      c_name varchar(25) as (value:c2::varchar),
-      c_address varchar(40) as (value:c3::varchar),
-      c_nationkey integer as (value:c4::int),
-      c_phone varchar(15) as (value:c5::varchar),
-      c_acctbal decimal(15,2) as (value:c6::number),
-      c_mktsegment char(10) as (value:c7::varchar),
-      c_comment varchar(117) as (value:c8::varchar)
-     )
- with 
-    location = @public.abench_s3_stage
-    file_format = public.abench_filefmt
-    pattern = '.*customer.*';
+unload ('select * from public.customer')
+to 's3://mcg-tdc2/tpch/30gb/spectrum/customer' 
+iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole'
+csv;
+
+create external table ext.customer (
+	c_custkey bigint,
+	c_name varchar(25),
+	c_address varchar(40),
+	c_nationkey integer,
+	c_phone char(15),
+	c_acctbal decimal(15,2),
+	c_mktsegment char(10),
+	c_comment varchar(117)
+) 
+row format serde 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+with serdeproperties (
+    'separatorChar' = ',',
+    'quoteChar' = '\"',
+    'escapeChar' = '\\'
+)
+stored as textfile
+location 's3://mcg-tdc2/tpch/30gb/spectrum/customer';
  
- select * from public.customer;
- select * from ext.customer;
- ```
+select * from public.customer;
+select * from ext.customer;
+```
+
+</details>
+
+### AutoMV
+
+<details>
+
+```sql
+select 
+    split_part(split_part(querytxt,'tdb=', 2), ' ', 1) as qrynum, 
+    plannode,
+    info    
+from 
+    STL_QUERY q,
+    STL_EXPLAIN e
+where 
+    q.query = e.query
+    and starttime > '2022-12-29 19:13:00' 
+    and querytxt like '%tdb=%' 
+    and (
+        plannode like '%auto_mv%'
+        or info like '%auto_mv%'
+    );
+```
 
 </details>
 
@@ -1166,21 +1204,13 @@ create or replace external table ext.customer
 <details>
 
 ```sql
-create or replace masking policy name_mask as (val string) returns string ->
-  case
-    when current_role() in ('SECURITYADMIN') then val
-    else '*********'
-  end;
-  
-  alter table customer modify column c_name set masking policy name_mask;
-  
-  select * from customer limit 100;
-  
-  alter masking policy name_mask set body ->
-  case
-    when current_role() in ('SYSADMIN') then val
-    else '*********'
-  end;
+create masking policy name_mask
+with (c_name varchar(25))
+using ('********');
+
+attach masking policy name_mask
+on customer(c_name)
+to public;
 
 select * from customer limit 100;
 ```
@@ -1191,17 +1221,31 @@ select * from customer limit 100;
 
 <details>
 
-```bash
-wget https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
-bash Anaconda3-2022.10-Linux-x86_64.sh
-conda create --name py38_env --override-channels -c https://repo.anaconda.com/pkgs/snowflake python=3.8 numpy pandas
-conda activate py38_env
-pip install notebook
-pip install snowflake-snowpark-python
-jupyter notebook
-```
-```python
-session.sql("select count(*) from customer").collect()
+```sql
+select
+    o_custkey,
+    sum(o_totalprice) as totalspend
+from ordertbl
+group by
+    o_custkey;
+
+create function f_py_humanreadable (num float)
+  returns varchar
+stable
+as $$
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '%.1f%s' % (num, ['', 'K', 'M', 'B', 'T'][magnitude])
+$$ language plpythonu;
+
+select
+    o_custkey,
+    f_py_humanreadable(sum(o_totalprice)::float) as totalspend
+from ordertbl
+group by
+    o_custkey;
 ```
 
 </details>
