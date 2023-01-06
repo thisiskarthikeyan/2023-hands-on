@@ -25,8 +25,8 @@ Password
 
 For TdBench activities, you will ssh into an AWS EC2 VM provided to you using the following credentials:
 
-Username
+Login
 ```
-ec2-user
+ssh ec2-user@<IP-address>
 ```
 and the same password as above.
