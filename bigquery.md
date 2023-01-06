@@ -4,24 +4,43 @@
 ## Login
 https://console.cloud.google.com/welcome?project=striking-domain-287814
 
-## Basic Functionality
-
-### Create Warehouse, Database, and Tables
+### gcloud auth and Create a Dataset
 
 <details>
 
-```sql
-set MYNAME='NAME_FOR_YOUR_STUFF';
+```bash
+gcloud auth login
+gcloud config set project striking-domain-287814
 
-create or replace warehouse identifier($MYNAME) 
-    warehouse_size=xsmall
-    initially_suspended=true
-    min_cluster_count=1
-    max_cluster_count=1
-    auto_suspend=300;
+bq ls -d
+bq mk tdalpha
+bq ls -d
 
-create or replace database identifier($MYNAME);
-use identifier($MYNAME);
+mydataset=tdalpha
+cat > .bigqueryrc <<EOF
+project_id = striking-domain-287814
+format=pretty
+location=US
+dataset_id=${mydataset}
+
+[query]
+use_legacy_sql=false
+max_rows=100
+maximum_bytes_billed=10000000
+EOF
+
+```
+
+</details>
+
+## Basic Functionality
+
+### Create Tables
+
+<details>
+
+```bash
+
 
 --nation
 create or replace table nation

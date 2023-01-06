@@ -12,6 +12,8 @@ Welcome to the 2023 Competitive Hands-On Training for the following cloud data w
 
 For most of our activities, you will use the following credentials:
 
+### General authentication
+
 Username
 ```
 tdalpha2023@gmail.com
@@ -22,6 +24,8 @@ Password
 ```
 17095ViaDelCampo
 ```
+
+### TdBench on EC2
 
 For TdBench activities, you will ssh into an AWS EC2 VM provided to you using the following credentials:
 
