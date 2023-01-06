@@ -41,161 +41,134 @@ EOF
 
 ## Basic Functionality
 
-### Create and Load Tables
+### Create Tables
 
 <details>
 
-```bash
-cat > region.json <<EOF
-[
-	{
-		"description": "region key",
-		"mode": "REQUIRED",
-		"name": "R_REGIONKEY",
-		"type": "INTEGER"
-	},
-	{
-		"description": "region name",
-		"mode": "REQUIRED",
-		"name": "R_NAME",
-		"type": "STRING"
-	},
-	{
-		"description": "region comment",
-		"mode": "REQUIRED",
-		"name": "R_COMMENT",
-		"type": "STRING"
-	}
-]
-EOF
-bq load REGION gs://mcg-tdc2/30gb/region.* ./region.json
-```
-
-```bash
-
---nation
-create or replace table nation
+```sql
+--NATION
+create or replace table tdalpha.NATION
      (
-      n_nationkey integer,
-      n_name varchar(25),
-      n_regionkey integer,
-      n_comment varchar(152)
+      n_nationkey int64,
+      n_name string,
+      n_regionkey int64,
+      n_comment string
      );
 
---region
-create or replace table region
+--REGION
+create or replace table tdalpha.REGION
      (
-      r_regionkey integer,
-      r_name varchar(25),
-      r_comment varchar(152)
+      r_regionkey int64,
+      r_name string,
+      r_comment string
      );
 
---supplier
-create or replace table supplier
+--SUPPLIER
+create or replace table tdalpha.SUPPLIER
      (
-      s_suppkey integer,
-      s_name varchar(25),
-      s_address varchar(40),
-      s_nationkey integer,
-      s_phone varchar(15),
-      s_acctbal decimal(15,2),
-      s_comment varchar(101)
+      s_suppkey int64,
+      s_name string,
+      s_address string,
+      s_nationkey int64,
+      s_phone string,
+      s_acctbal numeric,
+      s_comment string
      );
 
---customer
-create or replace table customer
+--CUSTOMER
+create or replace table tdalpha.CUSTOMER
      (
-      c_custkey integer,
-      c_name varchar(25),
-      c_address varchar(40),
-      c_nationkey integer,
-      c_phone varchar(15),
-      c_acctbal decimal(15,2),
-      c_mktsegment char(10),
-      c_comment varchar(117)
+      c_custkey int64,
+      c_name string,
+      c_address string,
+      c_nationkey int64,
+      c_phone string,
+      c_acctbal numeric,
+      c_mktsegment string,
+      c_comment string
      );
 
---parttbl
-create or replace table parttbl
+--PARTTBL
+create or replace table tdalpha.PARTTBL
      (
       p_partkey bigint,
-      p_name varchar(55),
-      p_mfgr char(25),
-      p_brand char(10),
-      p_type varchar(25),
-      p_size integer,
-      p_container char(10),
-      p_retailprice decimal(15,2),
-      p_comment varchar(23)
+      p_name string,
+      p_mfgr string,
+      p_brand string,
+      p_type string,
+      p_size int64,
+      p_container string,
+      p_retailprice numeric,
+      p_comment string
      );
 
---partsupp
-create or replace table partsupp
+--PARTSUPP
+create or replace table tdalpha.PARTSUPP
      (
       ps_partkey bigint,
-      ps_suppkey integer,
-      ps_availqty integer,
-      ps_supplycost decimal(15,2),
-      ps_comment varchar(199)
+      ps_suppkey int64,
+      ps_availqty int64,
+      ps_supplycost numeric,
+      ps_comment string
      );
 
---ordertbl
-create or replace table ordertbl
+--ORDERTBL
+create or replace table tdalpha.ORDERTBL
      (
       o_orderkey bigint,
-      o_custkey integer,
-      o_orderstatus char(1),
-      o_totalprice decimal(15,2),
+      o_custkey int64,
+      o_orderstatus string,
+      o_totalprice numeric,
       o_orderdate date,
-      o_orderpriority char(15),
-      o_clerk varchar(15),
-      o_shippriority integer,
-      o_comment varchar(79)
+      o_orderpriority string,
+      o_clerk string,
+      o_shippriority int64,
+      o_comment string
      );
 
---lineitem
-create or replace table lineitem
+--LINEITEM
+create or replace table tdalpha.LINEITEM
      (
       l_orderkey bigint,
       l_partkey bigint,
-      l_suppkey integer,
-      l_linenumber integer,
-      l_quantity decimal(15,2),
-      l_extendedprice decimal(15,2),
-      l_discount decimal(15,2),
-      l_tax decimal(15,2),
-      l_returnflag char(1),
-      l_linestatus char(1),
+      l_suppkey int64,
+      l_linenumber int64,
+      l_quantity numeric,
+      l_extendedprice numeric,
+      l_discount numeric,
+      l_tax numeric,
+      l_returnflag string,
+      l_linestatus string,
       l_shipdate date,
       l_commitdate date,
       l_receiptdate date,
-      l_shipinstruct char(25),
-      l_shipmode char(10),
-      l_comment varchar(44)
+      l_shipinstruct string,
+      l_shipmode string,
+      l_comment string
      );
 
---revenue0 view
-create or replace view revenue0 (supplier_no, total_revenue) as
+--REVENUE0 view
+create or replace view tdalpha.REVENUE0 (supplier_no, total_revenue) as
 select
     l_suppkey,
     sum(l_extendedprice * (1 - l_discount))
 from
-    lineitem
+    LINEITEM
 where
     l_shipdate >= '1996-01-01' and l_shipdate < dateadd(month, 3, '1996-01-01')
 group by
     l_suppkey;
-
-select get_ddl('table', 'lineitem');
-
-select get_ddl('view', 'revenue0');
 ```
 
 </details>
 
-### Loading Data (Directly from S3)
+### Loading Data (Directly from GCS)
 
 <details>
+
+```bash
+bq load REGION gs://mcg-tdc2/30gb/region.* ./region.json
+```
 
 ```sql
 create or replace file format abench_filefmt
