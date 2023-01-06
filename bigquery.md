@@ -11,12 +11,19 @@ https://console.cloud.google.com/welcome?project=striking-domain-287814
 ```bash
 gcloud auth login
 gcloud config set project striking-domain-287814
+```
 
+```bash
 bq ls -d
 bq mk tdalpha
 bq ls -d
+```
 
+```bash
 mydataset=tdalpha
+```
+
+```bash
 cat > .bigqueryrc <<EOF
 project_id = striking-domain-287814
 format=pretty
@@ -28,7 +35,6 @@ use_legacy_sql=false
 max_rows=100
 maximum_bytes_billed=10000000
 EOF
-
 ```
 
 </details>
