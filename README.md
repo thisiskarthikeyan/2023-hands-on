@@ -4,7 +4,7 @@ Welcome to the 2023 Competitive Hands-On Training for the following cloud data w
 
 - [Snowflake](snowflake.md)
 - [Amazon Redshift](redshift.md)
-- Google BigQuery
+- [Google BigQuery](bigquery.md)
 - Azure Synapse Analytics
 - Databricks
 
@@ -22,3 +22,11 @@ Password
 ```
 17095ViaDelCampo
 ```
+
+For TdBench activities, you will ssh into an AWS EC2 VM provided to you using the following credentials:
+
+Username
+```
+ec2-user
+```
+and the same password as above.
