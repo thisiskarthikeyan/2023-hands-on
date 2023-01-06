@@ -4,7 +4,7 @@
 ## Login
 https://console.cloud.google.com/welcome?project=striking-domain-287814
 
-### gcloud auth and Create a Dataset
+### Gcloud Auth, Create a Dataset, and BigQuery CLI Config
 
 <details>
 
@@ -41,12 +41,37 @@ EOF
 
 ## Basic Functionality
 
-### Create Tables
+### Create and Load Tables
 
 <details>
 
 ```bash
+cat > region.json <<EOF
+[
+	{
+		"description": "region key",
+		"mode": "REQUIRED",
+		"name": "R_REGIONKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "region name",
+		"mode": "REQUIRED",
+		"name": "R_NAME",
+		"type": "STRING"
+	},
+	{
+		"description": "region comment",
+		"mode": "REQUIRED",
+		"name": "R_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load REGION gs://mcg-tdc2/30gb/region.* ./region.json
+```
 
+```bash
 
 --nation
 create or replace table nation
