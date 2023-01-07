@@ -15,8 +15,6 @@ gcloud config set project striking-domain-287814
 
 ```bash
 bq ls -d
-bq mk tdalpha
-bq ls -d
 ```
 
 ```bash
@@ -115,7 +113,7 @@ create or replace table tdalpha.PARTSUPP
 --ORDERTBL
 create or replace table tdalpha.ORDERTBL
      (
-      o_orderkey bigint,
+      o_orderkey int64,
       o_custkey int64,
       o_orderstatus string,
       o_totalprice numeric,
@@ -129,8 +127,8 @@ create or replace table tdalpha.ORDERTBL
 --LINEITEM
 create or replace table tdalpha.LINEITEM
      (
-      l_orderkey bigint,
-      l_partkey bigint,
+      l_orderkey int64,
+      l_partkey int64,
       l_suppkey int64,
       l_linenumber int64,
       l_quantity numeric,
@@ -146,63 +144,453 @@ create or replace table tdalpha.LINEITEM
       l_shipmode string,
       l_comment string
      );
-
---REVENUE0 view
-create or replace view tdalpha.REVENUE0 (supplier_no, total_revenue) as
-select
-    l_suppkey,
-    sum(l_extendedprice * (1 - l_discount))
-from
-    LINEITEM
-where
-    l_shipdate >= '1996-01-01' and l_shipdate < dateadd(month, 3, '1996-01-01')
-group by
-    l_suppkey;
 ```
 
 </details>
 
-### Loading Data (Directly from GCS)
+### Loading Data (Directly from tdalpha.GCS)
 
 <details>
 
 ```bash
-bq load REGION gs://mcg-tdc2/30gb/region.* ./region.json
+cat > nation.json <<EOF
+[
+	{
+		"description": "nation nbr",
+		"mode": "REQUIRED",
+		"name": "N_NATIONKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "nation name",
+		"mode": "REQUIRED",
+		"name": "N_NAME",
+		"type": "STRING"
+	},
+	{
+		"description": "region nbr",
+		"mode": "REQUIRED",
+		"name": "N_REGIONKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "nation comment",
+		"mode": "REQUIRED",
+		"name": "N_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load --source_format=CSV --field_delimiter='|' NATION gs://mcg-tdc2/tpch/30gb/nation* ./nation.json
+```
+
+```bash
+cat > region.json <<EOF
+[
+	{
+		"description": "region nbr",
+		"mode": "REQUIRED",
+		"name": "R_REGIONKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "region name",
+		"mode": "REQUIRED",
+		"name": "R_NAME",
+		"type": "STRING"
+	},
+	{
+		"description": "region comment",
+		"mode": "REQUIRED",
+		"name": "R_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load --source_format=CSV --field_delimiter='|' REGION gs://mcg-tdc2/tpch/30gb/region* ./region.json
+```
+
+```bash
+cat > supplier.json <<EOF
+[
+	{
+		"description": "supplier nbr",
+		"mode": "REQUIRED",
+		"name": "S_SUPPKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "supplier name",
+		"mode": "REQUIRED",
+		"name": "S_NAME",
+		"type": "STRING"
+	},
+	{
+		"description": "supplier address",
+		"mode": "REQUIRED",
+		"name": "S_ADDRESS",
+		"type": "STRING"
+	},
+	{
+		"description": "nation nbr",
+		"mode": "REQUIRED",
+		"name": "S_NATIONKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "supplier phone",
+		"mode": "REQUIRED",
+		"name": "S_PHONE",
+		"type": "STRING"
+	},
+	{
+		"description": "supplier account balance",
+		"mode": "REQUIRED",
+		"name": "S_ACCTBAL",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "supplier comment",
+		"mode": "REQUIRED",
+		"name": "S_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load --source_format=CSV --field_delimiter='|' SUPPLIER gs://mcg-tdc2/tpch/30gb/supplier* ./supplier.json
+```
+
+```bash
+cat > parttbl.json <<EOF
+[
+	{
+		"description": "part nbr",
+		"mode": "REQUIRED",
+		"name": "P_PARTKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "part name",
+		"mode": "REQUIRED",
+		"name": "P_NAME",
+		"type": "STRING"
+	},
+	{
+		"description": "part mfgr",
+		"mode": "REQUIRED",
+		"name": "P_MFGR",
+		"type": "STRING"
+	},
+	{
+		"description": "part brand",
+		"mode": "REQUIRED",
+		"name": "P_BRAND",
+		"type": "STRING"
+	},
+	{
+		"description": "part TYPE",
+		"mode": "REQUIRED",
+		"name": "P_TYPE",
+		"type": "STRING"
+	},
+	{
+		"description": "part size",
+		"mode": "REQUIRED",
+		"name": "P_SIZE",
+		"type": "INTEGER"
+	},
+	{
+		"description": "part container",
+		"mode": "REQUIRED",
+		"name": "P_CONTAINER",
+		"type": "STRING"
+	},
+	{
+		"description": "part retailprice",
+		"mode": "REQUIRED",
+		"name": "P_RETAILPRICE",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "part comment",
+		"mode": "REQUIRED",
+		"name": "P_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load --source_format=CSV --field_delimiter='|' PARTTBL gs://mcg-tdc2/tpch/30gb/parttbl* ./parttbl.json
+```
+
+```bash
+cat > partsupp.json <<EOF
+[
+	{
+		"description": "part nbr",
+		"mode": "REQUIRED",
+		"name": "PS_PARTKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "supplier nbr",
+		"mode": "REQUIRED",
+		"name": "PS_SUPPKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "partsupp avail qty",
+		"mode": "REQUIRED",
+		"name": "PS_AVAILQTY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "partsupp supply cost",
+		"mode": "REQUIRED",
+		"name": "PS_SUPPLYCOST",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "partsupp comment",
+		"mode": "REQUIRED",
+		"name": "PS_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load --source_format=CSV --field_delimiter='|' PARTSUPP gs://mcg-tdc2/tpch/30gb/partsupp* ./partsupp.json
+```
+
+```bash
+cat > customer.json <<EOF
+[
+	{
+		"description": "customer nbr",
+		"mode": "REQUIRED",
+		"name": "C_CUSTKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "customer name",
+		"mode": "REQUIRED",
+		"name": "C_NAME",
+		"type": "STRING"
+	},
+	{
+		"description": "customer address",
+		"mode": "REQUIRED",
+		"name": "C_ADDRESS",
+		"type": "STRING"
+	},
+	{
+		"description": "nation nbr",
+		"mode": "REQUIRED",
+		"name": "C_NATIONKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "customer phone",
+		"mode": "REQUIRED",
+		"name": "C_PHONE",
+		"type": "STRING"
+	},
+	{
+		"description": "customer account balance",
+		"mode": "REQUIRED",
+		"name": "C_ACCTBAL",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "customer market segment",
+		"mode": "REQUIRED",
+		"name": "C_MKTSEGMENT",
+		"type": "STRING"
+	},
+	{
+		"description": "customer comment",
+		"mode": "REQUIRED",
+		"name": "C_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load --source_format=CSV --field_delimiter='|' CUSTOMER gs://mcg-tdc2/tpch/30gb/customer* ./customer.json
+```
+
+```bash
+cat > ordertbl.json <<EOF
+[
+	{
+		"description": "order nbr",
+		"mode": "REQUIRED",
+		"name": "O_ORDERKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "customer nbr",
+		"mode": "REQUIRED",
+		"name": "O_CUSTKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "order status",
+		"mode": "REQUIRED",
+		"name": "O_ORDERSTATUS",
+		"type": "STRING"
+	},
+	{
+		"description": "order totalprice",
+		"mode": "REQUIRED",
+		"name": "O_TOTALPRICE",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "order date",
+		"mode": "REQUIRED",
+		"name": "O_ORDERDATE",
+		"type": "DATE"
+	},
+	{
+		"description": "order priority",
+		"mode": "REQUIRED",
+		"name": "O_ORDERPRIORITY",
+		"type": "STRING"
+	},
+	{
+		"description": "order clerk",
+		"mode": "REQUIRED",
+		"name": "O_CLERK",
+		"type": "STRING"
+	},
+	{
+		"description": "order ship priority",
+		"mode": "REQUIRED",
+		"name": "O_SHIPPRIORITY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "order comment",
+		"mode": "REQUIRED",
+		"name": "O_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load --source_format=CSV --field_delimiter='|' ORDERTBL gs://mcg-tdc2/tpch/30gb/ordertbl* ./ordertbl.json
+```
+
+```bash
+cat > lineitem.json <<EOF
+[
+	{
+		"description": "order nbr",
+		"mode": "REQUIRED",
+		"name": "L_ORDERKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "part nbr",
+		"mode": "REQUIRED",
+		"name": "L_PARTKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "supplier nbr",
+		"mode": "REQUIRED",
+		"name": "L_SUPPKEY",
+		"type": "INTEGER"
+	},
+	{
+		"description": "linenmber",
+		"mode": "REQUIRED",
+		"name": "L_LINENUMBER",
+		"type": "INTEGER"
+	},
+	{
+		"description": "quantity",
+		"mode": "REQUIRED",
+		"name": "L_QUANTITY",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "extended price",
+		"mode": "REQUIRED",
+		"name": "L_EXTENDEDPRICE",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "discount",
+		"mode": "REQUIRED",
+		"name": "L_DISCOUNT",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "tax",
+		"mode": "REQUIRED",
+		"name": "L_TAX",
+		"type": "NUMERIC"
+	},
+	{
+		"description": "returnflag",
+		"mode": "REQUIRED",
+		"name": "L_RETURNFLAG",
+		"type": "STRING"
+	},
+	{
+		"description": "status",
+		"mode": "REQUIRED",
+		"name": "L_LINESTATUS",
+		"type": "STRING"
+	},
+	{
+		"description": "ship date",
+		"mode": "REQUIRED",
+		"name": "L_SHIPDATE",
+		"type": "DATE"
+	},
+	{
+		"description": "commit date",
+		"mode": "REQUIRED",
+		"name": "L_COMMITDATE",
+		"type": "DATE"
+	},
+	{
+		"description": "receipt date",
+		"mode": "REQUIRED",
+		"name": "L_RECEIPTDATE",
+		"type": "DATE"
+	},
+	{
+		"description": "sship instructions",
+		"mode": "REQUIRED",
+		"name": "L_SHIPINSTRUCT",
+		"type": "STRING"
+	},
+	{
+		"description": "ship mode",
+		"mode": "REQUIRED",
+		"name": "L_SHIPMODE",
+		"type": "STRING"
+	},
+	{
+		"description": "lineitem comment",
+		"mode": "REQUIRED",
+		"name": "L_COMMENT",
+		"type": "STRING"
+	}
+]
+EOF
+bq load --source_format=CSV --field_delimiter='|' LINEITEM gs://mcg-tdc2/tpch/30gb/lineitem* ./lineitem.json
 ```
 
 ```sql
-create or replace file format abench_filefmt
-	type = 'CSV'
-	field_delimiter = '|'
-    field_optionally_enclosed_by = '"'
-    date_format = 'YYYY-MM-DD'
-    error_on_column_count_mismatch=false
-    encoding = 'iso-8859-1';
-
-create or replace stage abench_s3_stage
-	file_format = abench_filefmt
-	credentials = (
-	    aws_key_id='AKIA3QOD57M7H2SLFMGA'
-	    aws_secret_key='UrFZFfjaHJJdB6QATUizxG+JeRQqauAoVrT8u0Y9')
-	url = 's3://mcg-tdc2/tpch/30gb';
-
-copy into nation from @abench_s3_stage pattern = '.*nation.*';
-copy into region from @abench_s3_stage pattern = '.*region.*';
-copy into supplier from @abench_s3_stage pattern = '.*supplier.*';
-copy into parttbl from @abench_s3_stage pattern = '.*part\.tbl.*'; 
-copy into partsupp from @abench_s3_stage pattern = '.*partsupp.*';
-copy into customer from @abench_s3_stage pattern = '.*customer.*';
-copy into ordertbl from @abench_s3_stage pattern = '.*orders.*';
-copy into lineitem from @abench_s3_stage pattern = '.*lineitem.*';
-
-select 'customer' entity, count(*) from customer union all
-select 'lineitem' entity, count(*) from lineitem union all
-select 'nation' entity, count(*) from nation union all
-select 'ordertbl' entity, count(*) from ordertbl union all
-select 'parttbl' entity, count(*) from parttbl union all
-select 'partsupp' entity, count(*) from partsupp union all
-select 'region' entity, count(*) from region union all
-select 'supplier' entity, count(*) from supplier order by 2;
+select 'customer' entity, count(*) from tdalpha.CUSTOMER union all
+select 'lineitem' entity, count(*) from tdalpha.LINEITEM union all
+select 'nation' entity, count(*) from tdalpha.NATION union all
+select 'ordertbl' entity, count(*) from tdalpha.ORDERTBL union all
+select 'parttbl' entity, count(*) from tdalpha.PARTTBL union all
+select 'partsupp' entity, count(*) from tdalpha.PARTSUPP union all
+select 'region' entity, count(*) from tdalpha.REGION union all
+select 'supplier' entity, count(*) from tdalpha.SUPPLIER order by 2;
 ```
 
 </details>
@@ -690,7 +1078,7 @@ from (
     select
         n1.n_name as supp_nation,
         n2.n_name as cust_nation,
-        extract(year from l_shipdate) as l_year,
+        extract(year from tdalpha.L_SHIPDATE) as l_year,
         l_extendedprice * (1 - l_discount) as volume
     from
         supplier,
@@ -765,7 +1153,7 @@ select /* tdb=TPCH_Q08 */
     end) / sum(volume) as mkt_share
 from (
     select
-        extract(year from o_orderdate) as o_year,
+        extract(year from tdalpha.O_ORDERDATE) as o_year,
         l_extendedprice * (1-l_discount) as volume,
         trim(n2.n_name) as nation
     from
@@ -802,7 +1190,7 @@ select /* tdb=TPCH_Q09 */
 from (
     select
         n_name as nation,
-        extract(year from o_orderdate) as o_year,
+        extract(year from tdalpha.O_ORDERDATE) as o_year,
         l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
     from
         parttbl,
@@ -877,7 +1265,7 @@ order by
 ```sql
 select 
   *
-from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
+from tdalpha.TABLE(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
 where 
   end_time between 
     to_timestamp_tz('2023-01-31 00:00:00 -0000') 
@@ -907,8 +1295,8 @@ select system$clustering_depth('ordertbl');
 select system$clustering_information('lineitem') union all
 select system$clustering_information('ordertbl');
 
-select * from public.lineitem where l_shipdate = '1998-01-01';
-select * from clustered.lineitem where l_shipdate = '1998-01-01';
+select * from tdalpha.PUBLIC.lineitem where l_shipdate = '1998-01-01';
+select * from tdalpha.CLUSTERED.lineitem where l_shipdate = '1998-01-01';
 ```
 
 </details>
@@ -941,7 +1329,7 @@ select
   cluster_number,
   sum(execution_time/1000),
   sum(queued_overload_time/1000)
-from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
+from tdalpha.TABLE(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
 where 
   end_time between 
     to_timestamp_tz('2022-12-24 20:11:16 -0000') 
@@ -1012,12 +1400,12 @@ limit 100;
 <details>
 
 ```sql
-select approx_count_distinct(o_clerk) from ordertbl;
+select approx_count_distinct(o_clerk) from tdalpha.ORDERTBL;
 
-select o_clerk, count(*) cnt from ordertbl group by o_clerk order by cnt desc;
+select o_clerk, count(*) cnt from tdalpha.ORDERTBL group by o_clerk order by cnt desc;
 
-select * from ordertbl where o_clerk in ('Clerk#000007320','Clerk#000024529','Clerk#000007341');
-select * from ordertbl where o_clerk like 'Clerk#000007%';
+select * from tdalpha.ORDERTBL where o_clerk in ('Clerk#000007320','Clerk#000024529','Clerk#000007341');
+select * from tdalpha.ORDERTBL where o_clerk like 'Clerk#000007%';
 
 alter table ordertbl add search optimization on equality(o_clerk);
 show tables like 'ordertbl';
@@ -1053,8 +1441,8 @@ create or replace external table ext.customer
     file_format = public.abench_filefmt
     pattern = '.*customer.*';
  
- select * from public.customer;
- select * from ext.customer;
+ select * from tdalpha.PUBLIC.customer;
+ select * from tdalpha.EXT.customer;
  ```
 
 </details>
@@ -1072,7 +1460,7 @@ create or replace masking policy name_mask as (val string) returns string ->
   
   alter table customer modify column c_name set masking policy name_mask;
   
-  select * from customer limit 100;
+  select * from tdalpha.CUSTOMER limit 100;
   
   alter masking policy name_mask set body ->
   case
@@ -1080,7 +1468,7 @@ create or replace masking policy name_mask as (val string) returns string ->
     else '*********'
   end;
 
-select * from customer limit 100;
+select * from tdalpha.CUSTOMER limit 100;
 ```
 
 </details>
@@ -1092,24 +1480,24 @@ select * from customer limit 100;
 ```sql
 show tables like 'ordertbl';
 
-select count(*) from ordertbl;
+select count(*) from tdalpha.ORDERTBL;
 
-delete from ordertbl where o_orderkey < 1000;
+delete from tdalpha.ORDERTBL where o_orderkey < 1000;
 
-select count(*) from ordertbl;
+select count(*) from tdalpha.ORDERTBL;
 
-select count(*) from ordertbl at(offset => -60*5);
+select count(*) from tdalpha.ORDERTBL at(offset => -60*5);
 
 create table restored_ordertbl clone ordertbl
   at(offset => -60*5);
 
-select count(*) from restored_ordertbl;
+select count(*) from tdalpha.RESTORED_ORDERTBL;
 
 drop table ordertbl;
 
 alter table restored_ordertbl rename to ordertbl;
 
-select count(*) from ordertbl;
+select count(*) from tdalpha.ORDERTBL;
 ```
 
 </details>
@@ -1179,7 +1567,7 @@ select /* tdb=TPCH_Q09 */
 from (
     select
         n_name as nation,
-        extract(year from o_orderdate) as o_year,
+        extract(year from tdalpha.O_ORDERDATE) as o_year,
         l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
     from
         parttbl,
@@ -1224,7 +1612,7 @@ pip install snowflake-snowpark-python
 jupyter notebook
 ```
 ```python
-from snowflake.snowpark import Session
+from tdalpha.SNOWFLAKE.snowpark import Session
 connection_parameters = {
     "account": "of53892.us-east-1",
     "user": "tdalpha",
@@ -1237,7 +1625,7 @@ connection_parameters = {
 
 session = Session.builder.configs(connection_parameters).create()  
 
-session.sql("select count(*) from customer").collect()
+session.sql("select count(*) from tdalpha.CUSTOMER").collect()
 ```
 
 </details>
