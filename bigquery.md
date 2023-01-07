@@ -148,7 +148,7 @@ create or replace table tdalpha.LINEITEM
 
 </details>
 
-### Loading Data (Directly from tdalpha.GCS)
+### Loading Data (Directly from GCS)
 
 <details>
 
