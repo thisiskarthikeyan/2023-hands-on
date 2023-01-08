@@ -1279,7 +1279,7 @@ create or replace table tdalpha_c.PARTTBL copy tdalpha.PARTTBL;
 create or replace table tdalpha_c.PARTSUPP copy tdalpha.PARTSUPP;
 create or replace table tdalpha_c.CUSTOMER copy tdalpha.CUSTOMER;
 create or replace table tdalpha_c.ORDERTBL cluster by (o_orderdate) as select * from tdalpha.ORDERTBL;
-create or replace table tdalpha_c.LINEITEM cluster by (l_shipdate) as select * from tdalpha.LINEITEM ;
+create or replace table tdalpha_c.LINEITEM cluster by (l_shipdate) as select * from tdalpha.LINEITEM;
 
 
 create or replace table tdalpha_p.NATION copy tdalpha.NATION;
@@ -1288,8 +1288,8 @@ create or replace table tdalpha_p.SUPPLIER copy tdalpha.SUPPLIER;
 create or replace table tdalpha_p.PARTTBL copy tdalpha.PARTTBL;
 create or replace table tdalpha_p.PARTSUPP copy tdalpha.PARTSUPP;
 create or replace table tdalpha_p.CUSTOMER copy tdalpha.CUSTOMER;
-create or replace table tdalpha_p.ORDERTBL partition by (o_orderdate) as select * from tdalpha.ORDERTBL ;
-create or replace table tdalpha_p.LINEITEM partition by (l_shipdate) as select * from tdalpha.LINEITEM ;
+create or replace table tdalpha_p.ORDERTBL partition by (o_orderdate) as select * from tdalpha.ORDERTBL;
+create or replace table tdalpha_p.LINEITEM partition by (l_shipdate) as select * from tdalpha.LINEITEM;
 ```
 
 </details>
@@ -1300,9 +1300,9 @@ create or replace table tdalpha_p.LINEITEM partition by (l_shipdate) as select *
 
 <details>
 
-```sql
-
-```
+<code>
+"jdbc:bigquery://https://www.googleapis.com/bigquery/v2;ProjectId=striking-domain-287814;OAuthType=0;OAuthServiceAcctEmail=mcg-tdc@striking-domain-287814.iam.gserviceaccount.com;OAuthPvtKeyPath=auth.json;Timeout=5400;<b>useQueryCache=0</b>;DefaultDataset=tdalpha;"
+</code>
 
 </details>
 
