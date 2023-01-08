@@ -1260,14 +1260,9 @@ ORDER BY
 <details>
 
 ```sql
-select 
-  *
-from tdalpha.TABLE(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
-where 
-  end_time between 
-    to_timestamp_tz('2023-01-31 00:00:00 -0000') 
-    and to_timestamp_tz('2023-02-04 23:59:59 -0000') 
-order by start_time;
+bq show --format prettyjson -j [job_id]
+
+bq show --format prettyjson -j [job_id] | jq -r '.configuration.query.query,.statistics.reservation_id,.statistics.query.biEngineStatistics,.statistics.finalExecutionDurationMs,.statistics.query.totalSlotMs,.statistics.query.totalBytesProcessed'
 ```
 
 </details>
@@ -1277,7 +1272,24 @@ order by start_time;
 <details>
 
 ```sql
+create or replace table tdalpha_c.NATION copy tdalpha.NATION;
+create or replace table tdalpha_c.REGION copy tdalpha.REGION;
+create or replace table tdalpha_c.SUPPLIER copy tdalpha.SUPPLIER;
+create or replace table tdalpha_c.PARTTBL copy tdalpha.PARTTBL;
+create or replace table tdalpha_c.PARTSUPP copy tdalpha.PARTSUPP;
+create or replace table tdalpha_c.CUSTOMER copy tdalpha.CUSTOMER;
+create or replace table tdalpha_c.ORDERTBL cluster by (o_orderdate) as select * from tdalpha.ORDERTBL;
+create or replace table tdalpha_c.LINEITEM cluster by (l_shipdate) as select * from tdalpha.LINEITEM ;
 
+
+create or replace table tdalpha_p.NATION copy tdalpha.NATION;
+create or replace table tdalpha_p.REGION copy tdalpha.REGION;
+create or replace table tdalpha_p.SUPPLIER copy tdalpha.SUPPLIER;
+create or replace table tdalpha_p.PARTTBL copy tdalpha.PARTTBL;
+create or replace table tdalpha_p.PARTSUPP copy tdalpha.PARTSUPP;
+create or replace table tdalpha_p.CUSTOMER copy tdalpha.CUSTOMER;
+create or replace table tdalpha_p.ORDERTBL partition by (o_orderdate) as select * from tdalpha.ORDERTBL ;
+create or replace table tdalpha_p.LINEITEM partition by (l_shipdate) as select * from tdalpha.LINEITEM ;
 ```
 
 </details>
