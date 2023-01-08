@@ -604,7 +604,7 @@ select 'supplier' entity, count(*) from tdalpha.SUPPLIER order by 2;
 SELECT /* tdb=TPCH_Q06 */
         round(cast(SUM(L_EXTENDEDPRICE*L_DISCOUNT) as NUMERIC ),2) AS REVENUE
 FROM 
-        LINEITEM
+        tdalpha.LINEITEM
 WHERE
         L_SHIPDATE >= CAST('1993-01-01' AS DATE)
         AND L_SHIPDATE <  DATE_ADD(CAST('1993-01-01' AS DATE) , INTERVAL 1 YEAR)
@@ -615,8 +615,8 @@ WHERE
 SELECT /* tdb=TPCH_Q19 */
         ROUND(CAST(SUM(L_EXTENDEDPRICE* (1 - L_DISCOUNT)) AS NUMERIC), 2) AS REVENUE
  FROM
-        LINEITEM,
-        PART
+        tdalpha.LINEITEM,
+        tdalpha.PARTTBL
 WHERE
     (
 		P_PARTKEY = L_PARTKEY
@@ -656,7 +656,7 @@ FROM   (
                 C_CUSTKEY AS C_CUSTKEY,
                 COUNT(O_ORDERKEY) AS C_COUNT
         FROM
-                CUSTOMER LEFT OUTER JOIN ORDERS ON
+                tdalpha.CUSTOMER LEFT OUTER JOIN tdalpha.ORDERTBL ON
                         C_CUSTKEY = O_CUSTKEY
                         AND O_COMMENT NOT LIKE '%unusual%accounts%'
         GROUP BY
@@ -673,10 +673,10 @@ SELECT /* tdb=TPCH_Q21 */
         S_NAME,
         COUNT(*) AS NUMWAIT
 FROM
-        SUPPLIER,
-        LINEITEM L1,
-        ORDERS,
-        NATION
+        tdalpha.SUPPLIER,
+        tdalpha.LINEITEM L1,
+        tdalpha.ORDERTBL,
+        tdalpha.NATION
 WHERE
         S_SUPPKEY = L1.L_SUPPKEY
         AND O_ORDERKEY = L1.L_ORDERKEY
@@ -686,7 +686,7 @@ WHERE
                 SELECT
                         *
                 FROM 
-                        LINEITEM L2
+                        tdalpha.LINEITEM L2
                 WHERE
                         L2.L_ORDERKEY = L1.L_ORDERKEY
                         AND L2.L_SUPPKEY <> L1.L_SUPPKEY
@@ -695,7 +695,7 @@ WHERE
                 SELECT
                         *
                 FROM 
-                        LINEITEM L3
+                        tdalpha.LINEITEM L3
                 WHERE
                         L3.L_ORDERKEY = L1.L_ORDERKEY
                         AND L3.L_SUPPKEY <> L1.L_SUPPKEY
@@ -718,8 +718,8 @@ SELECT /* tdb=TPCH_Q14 */
                 ELSE 0 
         END)as NUMERIC) /round(cast( SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) as NUMERIC),2)  AS PROMO_REVENUE
 FROM 
-        LINEITEM,
-        PART
+        tdalpha.LINEITEM,
+        tdalpha.PARTTBL
 WHERE
         L_PARTKEY = P_PARTKEY
         AND L_SHIPDATE >= CAST('1995-11-01' AS DATE)
@@ -732,9 +732,9 @@ SELECT /* tdb=TPCH_Q03 */
         O_ORDERDATE,
         O_SHIPPRIORITY
 FROM  
-        CUSTOMER,
-        ORDERS,
-        LINEITEM
+        tdalpha.CUSTOMER,
+        tdalpha.ORDERTBL,
+        tdalpha.LINEITEM
 WHERE
         C_MKTSEGMENT  = 'FURNITURE'
         AND C_CUSTKEY    = O_CUSTKEY
@@ -755,20 +755,20 @@ SELECT /* tdb=TPCH_Q20 */
         S_NAME,
         S_ADDRESS
 FROM
-        SUPPLIER,
-        NATION
+        tdalpha.SUPPLIER,
+        tdalpha.NATION
 WHERE
         S_SUPPKEY IN (
                 SELECT
                         PS_SUPPKEY
                 FROM
-                        PARTSUPP
+                        tdalpha.PARTSUPP
                 WHERE
                         PS_PARTKEY IN (
                                 SELECT
                                         P_PARTKEY
                                 FROM
-                                        PART
+                                        tdalpha.PARTTBL
                                 WHERE
                                         P_NAME LIKE 'blush%'
                         )
@@ -776,7 +776,7 @@ WHERE
                         SELECT
                                 0.5 * SUM(L_QUANTITY)
                         FROM
-                                LINEITEM
+                                tdalpha.LINEITEM
                         WHERE
                                 L_PARTKEY = PS_PARTKEY
                                 AND  L_SUPPKEY = PS_SUPPKEY
@@ -800,11 +800,11 @@ SELECT /* tdb=TPCH_Q02 */
         S_PHONE,
         S_COMMENT
 FROM 
-        PART,
-        SUPPLIER,
-        PARTSUPP,
-        NATION,
-        REGION
+        tdalpha.PARTTBL,
+        tdalpha.SUPPLIER,
+        tdalpha.PARTSUPP,
+        tdalpha.NATION,
+        tdalpha.REGION
 WHERE
         P_PARTKEY = PS_PARTKEY
         AND S_SUPPKEY = PS_SUPPKEY
@@ -818,10 +818,10 @@ WHERE
                         MIN(PS_SUPPLYCOST)
                 FROM 
  
-        SUPPLIER,
-        PARTSUPP,
-        NATION,
-        REGION
+        tdalpha.SUPPLIER,
+        tdalpha.PARTSUPP,
+        tdalpha.NATION,
+        tdalpha.REGION
                 WHERE
                         P_PARTKEY = PS_PARTKEY
                         AND S_SUPPKEY = PS_SUPPKEY
@@ -852,8 +852,8 @@ SELECT /* tdb=TPCH_Q12 */
                 ELSE 0 
         END) AS LOW_LINE_COUNT
 FROM 
-       ORDERS,
-       LINEITEM
+       tdalpha.ORDERTBL,
+       tdalpha.LINEITEM
 WHERE 
         O_ORDERKEY = L_ORDERKEY
         AND L_SHIPMODE IN ('TRUCK', 'AIR')
@@ -879,7 +879,7 @@ SELECT /* tdb=TPCH_Q01 */
         ROUND(CAST(AVG(L_DISCOUNT) AS NUMERIC), 2) AS AVG_DISC,
         ROUND(CAST(COUNT(*) AS NUMERIC), 0) AS COUNT_ORDER
 FROM 
-        LINEITEM
+        tdalpha.LINEITEM
 WHERE
         L_SHIPDATE <= DATE_SUB(DATE '1998-12-01', INTERVAL 84 DAY)
 GROUP BY
@@ -900,10 +900,10 @@ SELECT /* tdb=TPCH_Q10 */
         C_PHONE, 
         C_COMMENT
 FROM 
-        CUSTOMER,
-        ORDERS,
-        LINEITEM,
-        NATION
+        tdalpha.CUSTOMER,
+        tdalpha.ORDERTBL,
+        tdalpha.LINEITEM,
+        tdalpha.NATION
 WHERE
         C_CUSTKEY = O_CUSTKEY
         AND L_ORDERKEY = O_ORDERKEY
@@ -928,12 +928,12 @@ SELECT /* tdb=TPCH_Q05 */
         N_NAME,
         ROUND(CAST(SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS NUMERIC), 2) AS REVENUE
 FROM 
-        CUSTOMER,
-        ORDERS,
-        LINEITEM,
-        SUPPLIER,
-        NATION,
-        REGION
+        tdalpha.CUSTOMER,
+        tdalpha.ORDERTBL,
+        tdalpha.LINEITEM,
+        tdalpha.SUPPLIER,
+        tdalpha.NATION,
+        tdalpha.REGION
 WHERE
         C_CUSTKEY = O_CUSTKEY
         AND L_ORDERKEY = O_ORDERKEY
@@ -959,7 +959,7 @@ FROM    (
                 SUBSTR (C_PHONE,1,2) AS CNTRYCODE,
                 C_ACCTBAL
         FROM
-                CUSTOMER
+                tdalpha.CUSTOMER
         WHERE
                 SUBSTR (C_PHONE,1 , 2) IN
                        ('24', '22', '34', '21', '32', '25', '30')
@@ -967,7 +967,7 @@ FROM    (
                         SELECT
                                 AVG(C_ACCTBAL)
                         FROM
-                                CUSTOMER
+                                tdalpha.CUSTOMER
                         WHERE
                                 C_ACCTBAL > 0.00
                                 AND SUBSTR (C_PHONE , 1 , 2) IN
@@ -977,7 +977,7 @@ FROM    (
                         SELECT
                                 *
                         FROM
-                                ORDERS
+                                tdalpha.ORDERTBL
                         WHERE
                                 O_CUSTKEY=C_CUSTKEY
                 )
@@ -992,7 +992,7 @@ SELECT /* tdb=TPCH_Q04 */
         O_ORDERPRIORITY,
         COUNT(*) AS ORDER_COUNT
 FROM
-        ORDERS
+        tdalpha.ORDERTBL
 WHERE
         O_ORDERDATE >=  CAST('1994-12-01' AS DATE)
         AND O_ORDERDATE < DATE_ADD(CAST('1994-12-01' AS DATE) , INTERVAL 3 MONTH)
@@ -1000,7 +1000,7 @@ WHERE
                 SELECT
                         *
                 FROM 
-                        LINEITEM
+                        tdalpha.LINEITEM
                 WHERE
                         L_ORDERKEY = O_ORDERKEY
                         AND L_COMMITDATE < L_RECEIPTDATE
@@ -1015,9 +1015,9 @@ SELECT /* tdb=TPCH_Q11 */
         PS_PARTKEY,
         ROUND(CAST(SUM(PS_SUPPLYCOST * PS_AVAILQTY) AS NUMERIC), 2) AS VALUE
 FROM 
-        PARTSUPP,
-        SUPPLIER,
-        NATION
+        tdalpha.PARTSUPP,
+        tdalpha.SUPPLIER,
+        tdalpha.NATION
 WHERE
         PS_SUPPKEY = S_SUPPKEY
         AND S_NATIONKEY = N_NATIONKEY
@@ -1028,9 +1028,9 @@ GROUP BY
                         SELECT
                                 SUM(PS_SUPPLYCOST * PS_AVAILQTY) * 0.000003333333333
                         FROM
-                                PARTSUPP,
-                                SUPPLIER,
-                                NATION
+                                tdalpha.PARTSUPP,
+                                tdalpha.SUPPLIER,
+                                tdalpha.NATION
                         WHERE
                                 PS_SUPPKEY = S_SUPPKEY
                                 AND S_NATIONKEY = N_NATIONKEY
@@ -1046,8 +1046,8 @@ SELECT /* tdb=TPCH_Q16 */
         P_SIZE,
         COUNT(DISTINCT PS_SUPPKEY) AS SUPPLIER_CNT
 FROM 
-       PARTSUPP,
-       PART
+       tdalpha.PARTSUPP,
+       tdalpha.PARTTBL
 WHERE
         P_PARTKEY = PS_PARTKEY
         AND P_BRAND <> 'Brand#25'
@@ -1057,7 +1057,7 @@ WHERE
                 SELECT 
                         S_SUPPKEY 
                 FROM 
-                       SUPPLIER
+                       tdalpha.SUPPLIER
                 WHERE 
                         S_COMMENT LIKE '%Customer%Complaints%'
         )
@@ -1078,12 +1078,12 @@ SELECT /* tdb=TPCH_Q07 */
         EXTRACT(YEAR FROM L_SHIPDATE) AS YEAR,
 		ROUND(CAST(SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS NUMERIC), 2) AS REVENUE
 FROM 
-        SUPPLIER,
-        LINEITEM,
-        ORDERS,
-        CUSTOMER,
-        NATION N1,
-        NATION N2
+        tdalpha.SUPPLIER,
+        tdalpha.LINEITEM,
+        tdalpha.ORDERTBL,
+        tdalpha.CUSTOMER,
+        tdalpha.NATION N1,
+        tdalpha.NATION N2
 WHERE
         S_SUPPKEY  = L_SUPPKEY
         AND O_ORDERKEY = L_ORDERKEY
@@ -1113,15 +1113,15 @@ SELECT /* tdb=TPCH_Q18 */
         O_TOTALPRICE,
         round(cast(SUM(L_QUANTITY) as  NUMERIC),2) AS SUM_QTY
 FROM
-       CUSTOMER,
-       ORDERS,
-       LINEITEM
+       tdalpha.CUSTOMER,
+       tdalpha.ORDERTBL,
+       tdalpha.LINEITEM
 WHERE
         O_ORDERKEY IN (
                 SELECT
                         L_ORDERKEY
                 FROM
-                       LINEITEM
+                       tdalpha.LINEITEM
                 GROUP BY
                         L_ORDERKEY HAVING
                                 SUM(L_QUANTITY) > 313
@@ -1148,14 +1148,14 @@ SELECT /* tdb=TPCH_Q08 */
                 ELSE 0
         END) / round(cast(SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) as  NUMERIC),2)  AS MKT_SHARE
 FROM 
-        PART,
-        SUPPLIER,
-        LINEITEM,
-        ORDERS,
-        CUSTOMER,
-        NATION as N1,
-        NATION as N2,
-        REGION
+        tdalpha.PARTTBL,
+        tdalpha.SUPPLIER,
+        tdalpha.LINEITEM,
+        tdalpha.ORDERTBL,
+        tdalpha.CUSTOMER,
+        tdalpha.NATION as N1,
+        tdalpha.NATION as N2,
+        tdalpha.REGION
 WHERE
         P_PARTKEY = L_PARTKEY
         AND S_SUPPKEY = L_SUPPKEY
@@ -1174,16 +1174,16 @@ ORDER BY
 
 
 SELECT /* tdb=TPCH_Q09 */
-        N_NAME  AS NATION,
+        N_NAME AS NATION,
         EXTRACT(YEAR FROM O_ORDERDATE) AS YEAR,
         ROUND(CAST(SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)-PS_SUPPLYCOST*L_QUANTITY) AS NUMERIC), 2) AS SUM_PROFIT
 FROM
-       PART,
-       SUPPLIER,
-       LINEITEM,
-       PARTSUPP,
-       ORDERS,
-       NATION
+       tdalpha.PARTTBL,
+       tdalpha.SUPPLIER,
+       tdalpha.LINEITEM,
+       tdalpha.PARTSUPP,
+       tdalpha.ORDERTBL,
+       tdalpha.NATION
 WHERE
         S_SUPPKEY = L_SUPPKEY
         AND PS_SUPPKEY = L_SUPPKEY
@@ -1203,8 +1203,8 @@ ORDER BY
 SELECT /* tdb=TPCH_Q17 */
         SUM(L_EXTENDEDPRICE) / 7.0 AS AVG_YEARLY
 FROM
-        LINEITEM,
-        PART
+        tdalpha.LINEITEM,
+        tdalpha.PARTTBL
 WHERE
         P_PARTKEY = L_PARTKEY
         AND P_BRAND = 'Brand#53'
@@ -1213,7 +1213,7 @@ WHERE
                 SELECT
                         0.2 * AVG(L_QUANTITY)
                 FROM
-                        LINEITEM
+                        tdalpha.LINEITEM
                 WHERE
                         L_PARTKEY = P_PARTKEY
         );
@@ -1225,7 +1225,7 @@ WITH /* tdb=TPCH_Q15 */ REVENUE0 AS
 			L_SUPPKEY AS SUPPLIER_NO,
 			ROUND(CAST(SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS NUMERIC), 2) AS TOTAL_REVENUE
 	FROM
-			LINEITEM
+			tdalpha.LINEITEM
 	WHERE
 			L_SHIPDATE >= CAST('1994-02-01' AS DATE)
 			AND L_SHIPDATE < DATE_ADD(CAST('1994-02-01' AS DATE), INTERVAL 3 MONTH)
@@ -1239,7 +1239,7 @@ SELECT
         S_PHONE,
         TOTAL_REVENUE
 FROM 
-        SUPPLIER,
+        tdalpha.SUPPLIER,
         REVENUE0
 WHERE
         S_SUPPKEY = SUPPLIER_NO
