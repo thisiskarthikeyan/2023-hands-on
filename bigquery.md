@@ -1300,9 +1300,7 @@ create or replace table tdalpha_p.LINEITEM partition by (l_shipdate) as select *
 
 <details>
 
-<code>
-"jdbc:bigquery://https://www.googleapis.com/bigquery/v2;ProjectId=striking-domain-287814;OAuthType=0;OAuthServiceAcctEmail=mcg-tdc@striking-domain-287814.iam.gserviceaccount.com;OAuthPvtKeyPath=auth.json;Timeout=5400;<b>useQueryCache=0</b>;DefaultDataset=tdalpha;"
-</code>
+<code>"jdbc:bigquery://https://www.googleapis.com/bigquery/v2;ProjectId=striking-domain-287814;OAuthType=0;OAuthServiceAcctEmail=mcg-tdc@striking-domain-287814.iam.gserviceaccount.com;OAuthPvtKeyPath=auth.json;Timeout=5400;<b>useQueryCache=0</b>;DefaultDataset=tdalpha;"</code>
 
 </details>
 
