@@ -1292,6 +1292,38 @@ create or replace table tdalpha_p.PARTSUPP copy tdalpha.PARTSUPP;
 create or replace table tdalpha_p.CUSTOMER copy tdalpha.CUSTOMER;
 create or replace table tdalpha_p.ORDERTBL partition by (o_orderdate) as select * from tdalpha.ORDERTBL;
 create or replace table tdalpha_p.LINEITEM partition by (l_shipdate) as select * from tdalpha.LINEITEM;
+
+SELECT /* tdb=TPCH_Q08 */
+        EXTRACT(YEAR FROM O_ORDERDATE) AS YEAR,
+        SUM(CASE
+                WHEN N2.N_NAME = 'PERU' 
+                THEN cast (L_EXTENDEDPRICE*(1-L_DISCOUNT) as  NUMERIC)
+                ELSE 0
+        END) / round(cast(SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) as  NUMERIC),2)  AS MKT_SHARE
+FROM 
+        tdalpha_p.PARTTBL,
+        tdalpha_p.SUPPLIER,
+        tdalpha_p.LINEITEM,
+        tdalpha_p.ORDERTBL,
+        tdalpha_p.CUSTOMER,
+        tdalpha_p.NATION as N1,
+        tdalpha_p.NATION as N2,
+        tdalpha_p.REGION
+WHERE
+        P_PARTKEY = L_PARTKEY
+        AND S_SUPPKEY = L_SUPPKEY
+        AND L_ORDERKEY = O_ORDERKEY
+        AND O_CUSTKEY = C_CUSTKEY
+        AND C_NATIONKEY = N1.N_NATIONKEY
+        AND N1.N_REGIONKEY = R_REGIONKEY
+        AND R_NAME = 'AMERICA'
+        AND S_NATIONKEY = N2.N_NATIONKEY
+        AND O_ORDERDATE BETWEEN '1995-01-01' AND '1996-12-31'
+        AND P_TYPE = 'SMALL BRUSHED BRASS'
+GROUP BY
+        YEAR
+ORDER BY
+        YEAR;
 ```
 
 </details>
@@ -1309,7 +1341,7 @@ create or replace table tdalpha_p.LINEITEM partition by (l_shipdate) as select *
 <details>
 
 ```sql
-create materialized view mv_q18
+create materialized view tdalpha.MV_Q18
 as
 select
    l_orderkey, 
@@ -1317,44 +1349,43 @@ select
    count(l_quantity) count_lq,
    count(*) count_grp
 from
-   lineitem
+   tdalpha.LINEITEM
 group by
    l_orderkey;
 
-/* TPC_H  Query 18 - Large Volume Customer */
-select /* tdb=TPCH_Q18 */
-    c_name,
-    c_custkey,
-    o_orderkey,
-    o_orderdate,
-    o_totalprice,
-    sum(l_quantity)
-from
-    customer,
-    ordertbl,
-    lineitem
-where
-    o_orderkey in (
-        select
-            l_orderkey
-        from
-            lineitem
-        group by
-            l_orderkey having
-                sum(l_quantity) > 300
-    )
-    and c_custkey = o_custkey
-    and o_orderkey = l_orderkey
-group by
-    c_name,
-    c_custkey,
-    o_orderkey,
-    o_orderdate,
-    o_totalprice
-order by
-    o_totalprice desc,
-    o_orderdate
-limit 100;
+SELECT /* tdb=TPCH_Q18 */
+        C_NAME,
+        C_CUSTKEY,
+        O_ORDERKEY,
+        O_ORDERDATE,
+        O_TOTALPRICE,
+        round(cast(SUM(L_QUANTITY) as  NUMERIC),2) AS SUM_QTY
+FROM
+       tdalpha.CUSTOMER,
+       tdalpha.ORDERTBL,
+       tdalpha.LINEITEM
+WHERE
+        O_ORDERKEY IN (
+                SELECT
+                        L_ORDERKEY
+                FROM
+                       tdalpha.LINEITEM
+                GROUP BY
+                        L_ORDERKEY HAVING
+                                SUM(L_QUANTITY) > 313
+        )
+        AND C_CUSTKEY = O_CUSTKEY
+        AND O_ORDERKEY = L_ORDERKEY
+GROUP BY
+        C_NAME,
+        C_CUSTKEY,
+        O_ORDERKEY,
+        O_ORDERDATE,
+        O_TOTALPRICE
+ORDER BY
+        O_TOTALPRICE DESC,
+        O_ORDERDATE
+LIMIT 100;
 ```
 
 </details>
