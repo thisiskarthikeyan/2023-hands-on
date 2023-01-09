@@ -1267,6 +1267,8 @@ bq show --format prettyjson -j [job_id] | jq -r '.configuration.query.query,.sta
 
 </details>
 
+## Performance Features
+
 ### Designing Tables (Clustering and Partitioning)
 
 <details>
@@ -1293,8 +1295,6 @@ create or replace table tdalpha_p.LINEITEM partition by (l_shipdate) as select *
 ```
 
 </details>
-
-## Performance Features
 
 ### Results Cache
 
