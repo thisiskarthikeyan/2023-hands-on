@@ -1486,6 +1486,8 @@ select x, y, multiplyInputs(x, y) as product
 from numbers;
 ```
 
+</details>
+
 ### Looker Studio
 
 <details>
