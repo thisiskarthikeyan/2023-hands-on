@@ -1395,15 +1395,76 @@ LIMIT 100;
 <details>
 
 ```sql
+SELECT /* tdb=TPCH_Q17 */
+        SUM(L_EXTENDEDPRICE) / 7.0 AS AVG_YEARLY
+FROM
+        tdalpha.LINEITEM,
+        tdalpha.PARTTBL
+WHERE
+        P_PARTKEY = L_PARTKEY
+        AND P_BRAND = 'Brand#53'
+        AND P_CONTAINER = 'SM BOX'
+        AND L_QUANTITY < (
+                SELECT
+                        0.2 * AVG(L_QUANTITY)
+                FROM
+                        tdalpha.LINEITEM
+                WHERE
+                        L_PARTKEY = P_PARTKEY
+        );
 
+SELECT /* tdb=TPCH_Q08 */
+        EXTRACT(YEAR FROM O_ORDERDATE) AS YEAR,
+        SUM(CASE
+                WHEN N2.N_NAME = 'PERU' 
+                THEN cast (L_EXTENDEDPRICE*(1-L_DISCOUNT) as  NUMERIC)
+                ELSE 0
+        END) / round(cast(SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) as  NUMERIC),2)  AS MKT_SHARE
+FROM 
+        tdalpha.PARTTBL,
+        tdalpha.SUPPLIER,
+        tdalpha.LINEITEM,
+        tdalpha.ORDERTBL,
+        tdalpha.CUSTOMER,
+        tdalpha.NATION as N1,
+        tdalpha.NATION as N2,
+        tdalpha.REGION
+WHERE
+        P_PARTKEY = L_PARTKEY
+        AND S_SUPPKEY = L_SUPPKEY
+        AND L_ORDERKEY = O_ORDERKEY
+        AND O_CUSTKEY = C_CUSTKEY
+        AND C_NATIONKEY = N1.N_NATIONKEY
+        AND N1.N_REGIONKEY = R_REGIONKEY
+        AND R_NAME = 'AMERICA'
+        AND S_NATIONKEY = N2.N_NATIONKEY
+        AND O_ORDERDATE BETWEEN '1995-01-01' AND '1996-12-31'
+        AND P_TYPE = 'SMALL BRUSHED BRASS'
+GROUP BY
+        YEAR
+ORDER BY
+        YEAR;
 
+select
+  creation_time,
+  job_id,
+  query,
+  bi_engine_statistics
+from
+  `region-us`.INFORMATION_SCHEMA.JOBS_BY_PROJECT
+where
+  creation_time between timestamp_sub(current_timestamp(), interval 2 minute)
+  and current_timestamp()
+  and job_type = "QUERY"
+order by
+  creation_time desc;
 ```
 
 </details>
 
 ## Usability Features
 
-### External Tables
+### BigQuery Omni (External Tables)
 
 <details>
 
