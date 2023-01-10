@@ -1464,41 +1464,66 @@ order by
 
 ## Usability Features
 
-### BigQuery Omni (External Tables)
+### JavaScript UDF
 
 <details>
 
 ```sql
-create or replace schema ext;
+create temp function multiplyInputs(x float64, y float64)
+returns float64
+language js
+AS r"""
+  return x*y;
+""";
 
-create or replace external table ext.customer
-     (
-      c_custkey integer as (value:c1::int),
-      c_name varchar(25) as (value:c2::varchar),
-      c_address varchar(40) as (value:c3::varchar),
-      c_nationkey integer as (value:c4::int),
-      c_phone varchar(15) as (value:c5::varchar),
-      c_acctbal decimal(15,2) as (value:c6::number),
-      c_mktsegment char(10) as (value:c7::varchar),
-      c_comment varchar(117) as (value:c8::varchar)
-     )
- with 
-    location = @public.abench_s3_stage
-    file_format = public.abench_filefmt
-    pattern = '.*customer.*';
- 
- select * from tdalpha.PUBLIC.customer;
- select * from tdalpha.EXT.customer;
- ```
-
-</details>
+with numbers as
+  (select 1 as x, 5 as y
+  union all
+  select 2 as x, 10 as y
+  union all
+  select 3 as x, 15 as y)
+select x, y, multiplyInputs(x, y) as product
+from numbers;
+```
 
 ### Looker Studio
 
 <details>
 
 ```sql
-
+SELECT /* tdb=TPCH_Q18 */
+        C_NAME,
+        C_CUSTKEY,
+        O_ORDERKEY,
+        O_ORDERDATE,
+        O_TOTALPRICE,
+        round(cast(SUM(L_QUANTITY) as  NUMERIC),2) AS SUM_QTY
+FROM
+       tdalpha.CUSTOMER,
+       tdalpha.ORDERTBL,
+       tdalpha.LINEITEM
+WHERE
+        O_ORDERKEY IN (
+                SELECT
+                        L_ORDERKEY
+                FROM
+                       tdalpha.LINEITEM
+                GROUP BY
+                        L_ORDERKEY HAVING
+                                SUM(L_QUANTITY) > 313
+        )
+        AND C_CUSTKEY = O_CUSTKEY
+        AND O_ORDERKEY = L_ORDERKEY
+GROUP BY
+        C_NAME,
+        C_CUSTKEY,
+        O_ORDERKEY,
+        O_ORDERDATE,
+        O_TOTALPRICE
+ORDER BY
+        O_TOTALPRICE DESC,
+        O_ORDERDATE
+LIMIT 100;
 ```
 
 </details>
