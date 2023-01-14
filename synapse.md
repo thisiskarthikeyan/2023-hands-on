@@ -18,6 +18,35 @@ Password
 
 ## Basic Functionality
 
+### Serverless Data Exploration
+
+<details>
+
+```sql
+select
+    top 100
+    *
+from
+    openrowset(
+        bulk 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/customer_*.csv',
+        format='csv',
+        parser_version='2.0',
+        fieldterminator='|'
+    )
+    with (
+        c_custkey bigint,
+        c_name varchar(25),
+        c_address varchar(40),
+        c_nationkey integer,
+        c_phone char(15),
+        c_acctbal decimal(15,2),
+        c_mktsegment char(10),
+        c_comment varchar(117)
+    ) as customer;
+```
+
+</details>
+
 ### Create Warehouse, Database, and Tables
 
 <details>
@@ -28,30 +57,35 @@ create table NATION (
 	n_name char(25) not null,
 	n_regionkey integer not null,
 	n_comment varchar(152)
-);
+) with (distribution = replicate)
+;
 create table REGION (
 	r_regionkey integer not null,
 	r_name char(25) not null,
 	r_comment varchar(152)
-);
+) with (distribution = replicate)
+;
 create table SUPPLIER (
-	s_suppkey bigint not null,
+	s_suppkey integer not null,
 	s_name char(25) not null,
 	s_address varchar(40) not null,
 	s_nationkey integer not null,
 	s_phone char(15) not null,
 	s_acctbal decimal(15,2) not null,
 	s_comment varchar(101) not null
-);
+) with (distribution = replicate)
+;
 create table PARTSUPP (
-	ps_partkey bigint not null,
-	ps_suppkey bigint not null,
+	ps_partkey integer not null,
+	ps_suppkey integer not null,
 	ps_availqty integer not null,
 	ps_supplycost decimal(15,2) not null,
 	ps_comment varchar(199) not null
-);
+) with (distribution = hash(ps_partkey)
+     ,clustered columnstore index order (ps_partkey, ps_suppkey))
+;
 create table PARTTBL (
-	p_partkey bigint not null,
+	p_partkey integer not null,
 	p_name varchar(55) not null,
 	p_mfgr char(25) not null,
 	p_brand char(10) not null,
@@ -60,9 +94,11 @@ create table PARTTBL (
 	p_container char(10) not null,
 	p_retailprice decimal(15,2) not null,
 	p_comment varchar(23) not null
-);
+) with (distribution = hash(p_partkey)
+     ,clustered columnstore index order (p_partkey))
+;
 create table CUSTOMER (
-	c_custkey bigint not null,
+	c_custkey integer not null,
 	c_name varchar(25) not null,
 	c_address varchar(40) not null,
 	c_nationkey integer not null,
@@ -70,10 +106,12 @@ create table CUSTOMER (
 	c_acctbal decimal(15,2) not null,
 	c_mktsegment char(10) not null,
 	c_comment varchar(117) not null
-);
+) with (distribution = hash(c_custkey)
+     ,clustered columnstore index order (c_custkey))
+;
 create table ORDERTBL (
 	o_orderkey bigint not null,
-	o_custkey bigint not null,
+	o_custkey integer not null,
 	o_orderstatus char(1) not null,
 	o_totalprice decimal(15,2) not null,
 	o_orderdate date not null,
@@ -81,11 +119,13 @@ create table ORDERTBL (
 	o_clerk char(15) not null, 
 	o_shippriority integer not null,
 	o_comment varchar(79) not null
-);
+) with (distribution = hash(o_orderkey)
+     ,clustered columnstore index order (o_orderkey, o_orderdate))
+;
 create table LINEITEM (
 	l_orderkey bigint not null,
-	l_partkey bigint not null,
-	l_suppkey bigint not null,
+	l_partkey integer not null,
+	l_suppkey integer not null,
 	l_linenumber integer not null,
 	l_quantity decimal(15,2) not null,
 	l_extendedprice decimal(15,2) not null,
@@ -99,66 +139,41 @@ create table LINEITEM (
 	l_shipinstruct char(25) not null,
 	l_shipmode char(10) not null,
 	l_comment varchar(44) not null
-);
-
-create view REVENUE0 (supplier_no, total_revenue) as
-select
-    l_suppkey,
-    sum(l_extendedprice * (1 - l_discount))
-from
-    lineitem
-where
-    l_shipdate >= '1996-01-01' and l_shipdate < dateadd(month, 3, '1996-01-01')
-group by
-    l_suppkey;
+) with (distribution = hash(l_orderkey)
+     ,clustered columnstore index order (l_orderkey, l_shipdate))
+;
 ```
 
 </details>
 
-### Loading Data (Directly from S3)
+### Loading Data (Directly from Blob Storage)
 
 <details>
 
 ```sql
-copy nation from 's3://mcg-tdc2/tpch/30gb/nation' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole'
-format as csv
-delimiter as '|';
+copy into NATION from 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/nation_*.csv'
+with (fieldterminator='|');
 
-copy region from 's3://mcg-tdc2/tpch/30gb/region' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole'
-format as csv
-delimiter as '|';
+copy into REGION from 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/region_*.csv'
+with (fieldterminator='|');
 
-copy supplier from 's3://mcg-tdc2/tpch/30gb/supplier' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole'
-format as csv
-delimiter as '|';
+copy into SUPPLIER from 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/supplier_*.csv'
+with (fieldterminator='|');
 
-copy partsupp from 's3://mcg-tdc2/tpch/30gb/partsupp' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole' 
-format as csv 
-delimiter as '|';
+copy into PARTSUPP from 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/partsupp_*.csv'
+with (fieldterminator='|');
 
-copy parttbl from 's3://mcg-tdc2/tpch/30gb/part.tbl' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole' 
-format as csv 
-delimiter as '|';
+copy into PARTTBL from 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/parttbl_*.csv'
+with (fieldterminator='|');
 
-copy customer from 's3://mcg-tdc2/tpch/30gb/customer' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole' 
-format as csv 
-delimiter as '|';
+copy into CUSTOMER from 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/customer_*.csv'
+with (fieldterminator='|');
 
-copy ordertbl from 's3://mcg-tdc2/tpch/30gb/orders.tbl' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole' 
-format as csv 
-delimiter as '|';
+copy into ORDERTBL from 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/ordertbl_*.csv'
+with (fieldterminator='|');
 
-copy lineitem from 's3://mcg-tdc2/tpch/30gb/lineitem' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole' 
-format as csv 
-delimiter as '|' ;
+copy into LINEITEM from 'https://tdalpha.blob.core.windows.net/tpch/tpch/30gb_unload/lineitem_*.csv'
+with (fieldterminator='|');
 
 select 'customer' entity, count(*) from CUSTOMER union all
 select 'lineitem' entity, count(*) from LINEITEM union all
@@ -177,544 +192,266 @@ select 'supplier' entity, count(*) from SUPPLIER order by 2;
 <details>
 
 ```sql
-select 
-/* tdb=TPCH_Q06 */
-sum(l_extendedprice*l_discount) as revenue
-from lineitem
-where l_shipdate >= '1993-01-01' and
- l_shipdate < cast (date '1993-01-01' + interval '1 year' as date)  and
- l_discount between 0.02 - 0.01 and 0.02 + 0.01 and
- l_quantity < 25;
+SELECT /* tdb=TPCH_Q06 */
+  SUM(L_EXTENDEDPRICE*L_DISCOUNT) AS REVENUE
+FROM LINEITEM
+WHERE L_SHIPDATE >= '1993-01-01' AND L_SHIPDATE < DATEADD(YY, 1, CAST('1993-01-01' AS DATETIME))
+AND L_DISCOUNT BETWEEN .02 - 0.01 AND .02 + 0.01 AND L_QUANTITY < 25
+;
 
-
-select  
-/* tdb=TPCH_Q19 */
-sum(l_extendedprice* (1 - l_discount)) as revenue
-from lineitem,
- parttbl
-where 	
+SELECT /* tdb=TPCH_Q19 */
+        SUM(L_EXTENDEDPRICE* (1 - L_DISCOUNT)) AS REVENUE
+FROM LINEITEM, PARTTBL
+WHERE 
     (
-		p_partkey = l_partkey
-		and p_brand = 'BRAND#11'
-		and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
-		and l_quantity >= 4 and l_quantity <= 4 + 10
-		and p_size between 1 and 5
-		and l_shipmode in ('AIR', 'AIR REG')
-		and l_shipinstruct = 'DELIVER IN PERSON'
+		P_PARTKEY = L_PARTKEY
+		AND P_BRAND = 'BRAND#11'
+		AND P_CONTAINER IN ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+		AND L_QUANTITY >= 4 AND L_QUANTITY <= 4 + 10
+		AND P_SIZE BETWEEN 1 AND 5
+		AND L_SHIPMODE IN ('AIR', 'AIR REG')
+		AND L_SHIPINSTRUCT = 'DELIVER IN PERSON'
 	)
-	or
+	OR
 	(
-		p_partkey = l_partkey
-		and p_brand = 'BRAND#33'
-		and p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
-		and l_quantity >= 19 and l_quantity <= 19 + 10
-		and p_size between 1 and 10
-		and l_shipmode in ('AIR', 'AIR REG')
-		and l_shipinstruct = 'DELIVER IN PERSON'
+		P_PARTKEY = L_PARTKEY
+		AND P_BRAND = 'BRAND#33'
+		AND P_CONTAINER IN ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+		AND L_QUANTITY >= 19 AND L_QUANTITY <= 19 + 10
+		AND P_SIZE BETWEEN 1 AND 10
+		AND L_SHIPMODE IN ('AIR', 'AIR REG')
+		AND L_SHIPINSTRUCT = 'DELIVER IN PERSON'
 	)
-	or
+	OR
 	(
-		p_partkey = l_partkey
-		and p_brand = 'BRAND#35'
-		and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
-		and l_quantity >= 25 and l_quantity <= 25 + 10
-		and p_size between 1 and 15
-		and l_shipmode in ('AIR', 'AIR REG')
-		and l_shipinstruct = 'DELIVER IN PERSON'
-	);
+		P_PARTKEY = L_PARTKEY
+		AND P_BRAND = 'BRAND#35'
+		AND P_CONTAINER IN ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
+		AND L_QUANTITY >= 25 AND L_QUANTITY <= 25 + 10
+		AND P_SIZE BETWEEN 1 AND 15
+		AND L_SHIPMODE IN ('AIR', 'AIR REG')
+		AND L_SHIPINSTRUCT = 'DELIVER IN PERSON'
+	)
+;
 
+SELECT /* tdb=TPCH_Q13 */
+C_COUNT, COUNT(*) AS CUSTDIST
+FROM (SELECT C_CUSTKEY, COUNT(O_ORDERKEY)
+FROM CUSTOMER LEFT OUTER JOIN ORDERTBL ON C_CUSTKEY = O_CUSTKEY
+AND O_COMMENT NOT LIKE'%%unusual%%accounts%%'
+GROUP BY C_CUSTKEY) AS C_ORDERTBL (C_CUSTKEY, C_COUNT)
+GROUP BY C_COUNT
+ORDER BY CUSTDIST DESC, C_COUNT DESC
+;
 
-select 
-/* tdb=TPCH_Q13 */
-c_count,
- count(*) as custdist
-from ( select c_custkey,
-   count(o_orderkey)
-  from customer left outer join ordertbl on
-   c_custkey = o_custkey  and
-   o_comment not like '%unusual%accounts%'
-  group by c_custkey
- ) as c_ordertbl (c_custkey, c_count)
-group by c_count
-order by custdist desc,
-  c_count  desc;
+SELECT /* tdb=TPCH_Q21 */
+TOP 100 S_NAME, COUNT(*) AS NUMWAIT
+FROM SUPPLIER, LINEITEM L1, ORDERTBL, NATION WHERE S_SUPPKEY = L1.L_SUPPKEY AND
+O_ORDERKEY = L1.L_ORDERKEY AND O_ORDERSTATUS = 'F' AND L1.L_RECEIPTDATE> L1.L_COMMITDATE
+AND EXISTS (SELECT * FROM LINEITEM L2 WHERE L2.L_ORDERKEY = L1.L_ORDERKEY
+AND L2.L_SUPPKEY <> L1.L_SUPPKEY) AND
+NOT EXISTS (SELECT * FROM LINEITEM L3 WHERE L3.L_ORDERKEY = L1.L_ORDERKEY AND
+L3.L_SUPPKEY <> L1.L_SUPPKEY AND L3.L_RECEIPTDATE > L3.L_COMMITDATE) AND
+S_NATIONKEY = N_NATIONKEY AND N_NAME = 'IRAN'
+GROUP BY S_NAME
+ORDER BY NUMWAIT DESC, S_NAME
+;
 
+SELECT /* tdb=TPCH_Q14 */
+100.00* SUM(CASE WHEN P_TYPE LIKE 'PROMO%%' THEN L_EXTENDEDPRICE*(1-L_DISCOUNT)
+ELSE 0 END) / SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS PROMO_REVENUE
+FROM LINEITEM, PARTTBL
+WHERE L_PARTKEY = P_PARTKEY AND L_SHIPDATE >= '1995-11-01' AND L_SHIPDATE < DATEADD(MM, 1, '1995-11-01')
+;
 
-select 
-/* tdb=TPCH_Q21 */
-s_name, count(*) as numwait
-from supplier, lineitem l1, ordertbl, nation
-where s_suppkey= l1.l_suppkey and
- o_orderkey= l1.l_orderkey and
- o_orderstatus= 'F' and
- l1.l_receiptdate > l1.l_commitdate and
- exists (select * from lineitem l2
-  where l2.l_orderkey = l1.l_orderkey and 
-  l2.l_suppkey <> l1.l_suppkey
-  ) and
- not exists (select * from lineitem l3
-   where l3.l_orderkey = l1.l_orderkey and
-   l3.l_suppkey <> l1.l_suppkey and
-   l3.l_receiptdate > l3.l_commitdate
-   ) and s_nationkey = n_nationkey and n_name = 'IRAN'
-group by s_name
-order by numwait desc, s_name
-limit 100;
+SELECT /* tdb=TPCH_Q03 */
+TOP 10 L_ORDERKEY, SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS REVENUE, O_ORDERDATE, O_SHIPPRIORITY
+FROM CUSTOMER, ORDERTBL, LINEITEM
+WHERE C_MKTSEGMENT = 'FURNITURE' AND C_CUSTKEY = O_CUSTKEY AND L_ORDERKEY = O_ORDERKEY AND
+O_ORDERDATE < '1995-03-13' AND L_SHIPDATE > '1995-03-13'
+GROUP BY L_ORDERKEY, O_ORDERDATE, O_SHIPPRIORITY
+ORDER BY REVENUE DESC, O_ORDERDATE
+;
 
+SELECT /* tdb=TPCH_Q20 */
+S_NAME, S_ADDRESS FROM SUPPLIER, NATION
+WHERE S_SUPPKEY IN (SELECT PS_SUPPKEY FROM PARTSUPP
+WHERE PS_PARTKEY in (SELECT P_PARTKEY FROM PARTTBL WHERE P_NAME LIKE 'blush%%') AND
+PS_AVAILQTY > (SELECT 0.5*SUM(L_QUANTITY) FROM LINEITEM WHERE L_PARTKEY = PS_PARTKEY AND
+L_SUPPKEY = PS_SUPPKEY AND L_SHIPDATE >= '1995-01-01' AND
+L_SHIPDATE < DATEADD(YY, 1,'1995-01-01'))) AND S_NATIONKEY = N_NATIONKEY AND N_NAME = 'KENYA'
+ORDER BY S_NAME
+;
 
-select 
-/* tdb=TPCH_Q14 */
-100.00 * sum ( case when p_type like 'PROMO%'
-     then l_extendedprice*(1-l_discount)
-     else 0
-    end) / sum(l_extendedprice*(1-l_discount)) as promo_revenue
-from lineitem,
- parttbl
-where l_partkey = p_partkey and
- l_shipdate >= '1995-11-01'  and
-        l_shipdate < cast (date '1995-11-01' + interval '1 month' as date);
+SELECT /* tdb=TPCH_Q02 */
+TOP 100 S_ACCTBAL, S_NAME, N_NAME, P_PARTKEY, P_MFGR, S_ADDRESS, S_PHONE, S_COMMENT
+FROM PARTTBL, SUPPLIER, PARTSUPP, NATION, REGION
+WHERE P_PARTKEY = PS_PARTKEY AND S_SUPPKEY = PS_SUPPKEY AND P_SIZE = 32 AND
+P_TYPE LIKE '%%NICKEL' AND S_NATIONKEY = N_NATIONKEY AND N_REGIONKEY = R_REGIONKEY AND
+R_NAME = 'ASIA' AND
+PS_SUPPLYCOST = (SELECT MIN(PS_SUPPLYCOST) FROM PARTSUPP, SUPPLIER, NATION, REGION
+WHERE P_PARTKEY = PS_PARTKEY AND S_SUPPKEY = PS_SUPPKEY
+AND S_NATIONKEY = N_NATIONKEY AND N_REGIONKEY = R_REGIONKEY AND R_NAME = 'ASIA')
+ORDER BY S_ACCTBAL DESC, N_NAME, S_NAME, P_PARTKEY
+;
 
+SELECT /* tdb=TPCH_Q12 */
+L_SHIPMODE,
+SUM(CASE WHEN O_ORDERPRIORITY = '1-URGENT' OR O_ORDERPRIORITY = '2-HIGH' THEN 1 ELSE 0 END) AS HIGH_LINE_COUNT,
+SUM(CASE WHEN O_ORDERPRIORITY <> '1-URGENT' AND O_ORDERPRIORITY <> '2-HIGH' THEN 1 ELSE 0 END ) AS LOW_LINE_COUNT
+FROM ORDERTBL, LINEITEM
+WHERE O_ORDERKEY = L_ORDERKEY AND L_SHIPMODE IN ('TRUCK', 'AIR')
+AND L_COMMITDATE < L_RECEIPTDATE AND L_SHIPDATE < L_COMMITDATE AND L_RECEIPTDATE >= '1994-01-01'
+AND L_RECEIPTDATE < DATEADD(MM, 1, CAST('1994-01-01' AS DATETIME))
+GROUP BY L_SHIPMODE
+ORDER BY L_SHIPMODE
+;
 
-select 
-/* tdb=TPCH_Q03 */
- l_orderkey,
- sum(l_extendedprice*(1-l_discount)) as revenue,
- o_orderdate, o_shippriority
-from customer,
- ordertbl,
- lineitem
-where c_mktsegment = 'FURNITURE' and
- c_custkey = o_custkey and
- l_orderkey = o_orderkey and
- o_orderdate < '1995-03-13' and
- l_shipdate > '1995-03-13'
-group by l_orderkey,
-  o_orderdate,
-  o_shippriority
-order by revenue desc,
-  o_orderdate
-limit 10;
+SELECT /* tdb=TPCH_Q01 */
+    L_RETURNFLAG, 
+    L_LINESTATUS, 
+    SUM(CAST(L_QUANTITY AS BIGINT)) AS SUM_QTY,
+    SUM(L_EXTENDEDPRICE) AS SUM_BASE_PRICE, 
+    SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS SUM_DISC_PRICE,
+    SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)*(1+L_TAX)) AS SUM_CHARGE, 
+    AVG(L_QUANTITY) AS AVG_QTY,
+    AVG(L_EXTENDEDPRICE) AS AVG_PRICE, 
+    AVG(L_DISCOUNT) AS AVG_DISC, 
+    COUNT_BIG(*) AS COUNT_ORDER
+FROM LINEITEM
+WHERE L_SHIPDATE <= DATEADD(DD, -90, CAST('1998-12-01' AS DATETIME))
+GROUP BY L_RETURNFLAG, L_LINESTATUS
+ORDER BY L_RETURNFLAG,L_LINESTATUS
+;
 
+SELECT /* tdb=TPCH_Q10 */
+TOP 20 C_CUSTKEY, C_NAME, SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS REVENUE, C_ACCTBAL,
+N_NAME, C_ADDRESS, C_PHONE, C_COMMENT
+FROM CUSTOMER, ORDERTBL, LINEITEM, NATION
+WHERE C_CUSTKEY = O_CUSTKEY AND L_ORDERKEY = O_ORDERKEY AND O_ORDERDATE>= '1994-03-01' AND
+O_ORDERDATE < DATEADD(MM, 3, CAST('1994-03-01' AS DATETIME)) AND
+L_RETURNFLAG = 'R' AND C_NATIONKEY = N_NATIONKEY
+GROUP BY C_CUSTKEY, C_NAME, C_ACCTBAL, C_PHONE, N_NAME, C_ADDRESS, C_COMMENT
+ORDER BY REVENUE DESC
+;
 
-select 
-/* tdb=TPCH_Q20 */
-s_name,
- s_address
-from supplier,
- nation
-where s_suppkey in (select ps_suppkey
-   from partsupp
-   where ps_partkey in 
-   (select p_partkey
-    from parttbl
-    where p_name like 'blush%'
-    ) and
-   ps_availqty > ( select 0.5 * sum(l_quantity)
-     from lineitem
-      where l_partkey = ps_partkey and
-      l_suppkey  = ps_suppkey and
-      l_shipdate >= '1995-01-01'  and
-      l_shipdate < cast (date '1995-01-01' + interval '1 year' as date)
-     )
-   ) and
- s_nationkey = n_nationkey and
- n_name = 'KENYA'
-order by s_name;
+SELECT /* tdb=TPCH_Q05 */
+N_NAME, SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS REVENUE
+FROM CUSTOMER, ORDERTBL, LINEITEM, SUPPLIER, NATION, REGION
+WHERE C_CUSTKEY = O_CUSTKEY AND L_ORDERKEY = O_ORDERKEY AND L_SUPPKEY = S_SUPPKEY
+AND C_NATIONKEY = S_NATIONKEY AND S_NATIONKEY = N_NATIONKEY AND N_REGIONKEY = R_REGIONKEY
+AND R_NAME = 'AFRICA' AND O_ORDERDATE >= '1993-01-01'
+AND O_ORDERDATE < DATEADD(YY, 1, cast('1993-01-01' as datetime))
+GROUP BY N_NAME
+ORDER BY REVENUE DESC
+;
 
+SELECT /* tdb=TPCH_Q22 */
+CNTRYCODE, COUNT(*) AS NUMCUST, SUM(C_ACCTBAL) AS TOTACCTBAL
+FROM (SELECT SUBSTRING(C_PHONE,1,2) AS CNTRYCODE, C_ACCTBAL
+FROM CUSTOMER WHERE SUBSTRING(C_PHONE,1,2) IN ('24', '22', '34', '21', '32', '25', '30') AND
+C_ACCTBAL > (SELECT AVG(C_ACCTBAL) FROM CUSTOMER WHERE C_ACCTBAL > 0.00 AND
+SUBSTRING(C_PHONE,1,2) IN ('24', '22', '34', '21', '32', '25', '30')) AND
+NOT EXISTS ( SELECT * FROM ORDERTBL WHERE O_CUSTKEY = C_CUSTKEY)) AS CUSTSALE
+GROUP BY CNTRYCODE
+ORDER BY CNTRYCODE
+;
 
-select 
-/* tdb=TPCH_Q02 */
- s_acctbal,
- s_name,
- n_name,
- p_partkey,
- p_mfgr,
- s_address,
- s_phone,
- s_comment
-from parttbl,
- supplier,
- partsupp,
- nation,
- region
-where p_partkey = ps_partkey and
- s_suppkey = ps_suppkey and
- p_size  = 32 and
- p_type  like '%NICKEL' and
- s_nationkey = n_nationkey and
- n_regionkey = r_regionkey and
- r_name  = 'ASIA' and
- ps_supplycost = ( select min(ps_supplycost)
-    from partsupp,
-     supplier,
-     nation,
-     region
-    where p_partkey = ps_partkey and
-     s_suppkey = ps_suppkey and
-     s_nationkey = n_nationkey and
-     n_regionkey = r_regionkey and
-     r_name  = 'ASIA'
-     )
-order by s_acctbal desc,
-  n_name,
-  s_name,
-  p_partkey
-limit 100;
+SELECT /* tdb=TPCH_Q04 */
+O_ORDERPRIORITY, COUNT(*) AS ORDER_COUNT FROM ORDERTBL
+WHERE O_ORDERDATE >= '1994-12-01' AND O_ORDERDATE < DATEADD(MM,3, CAST('1994-12-01' AS DATETIME))
+AND EXISTS (SELECT * FROM LINEITEM WHERE L_ORDERKEY = O_ORDERKEY AND L_COMMITDATE < L_RECEIPTDATE)
+GROUP BY O_ORDERPRIORITY
+ORDER BY O_ORDERPRIORITY
+;
 
+SELECT /* tdb=TPCH_Q11 */
+PS_PARTKEY, SUM(PS_SUPPLYCOST*PS_AVAILQTY) AS VALUE
+FROM PARTSUPP, SUPPLIER, NATION
+WHERE PS_SUPPKEY = S_SUPPKEY AND S_NATIONKEY = N_NATIONKEY AND N_NAME = 'CHINA'
+GROUP BY PS_PARTKEY
+HAVING SUM(PS_SUPPLYCOST*PS_AVAILQTY) > (SELECT SUM(PS_SUPPLYCOST*PS_AVAILQTY) * 0.000003333333333
+FROM PARTSUPP, SUPPLIER, NATION
+WHERE PS_SUPPKEY = S_SUPPKEY AND S_NATIONKEY = N_NATIONKEY AND N_NAME = 'CHINA')
+ORDER BY VALUE DESC
+;
 
-select 
-/* tdb=TPCH_Q12 */
-l_shipmode,
- sum( case when o_orderpriority  = '1-URGENT' or
-        o_orderpriority  = '2-HIGH'
-   then 1
-   else 0
-  end) as high_line_count,
- sum( case when o_orderpriority <> '1-URGENT' and
-        o_orderpriority <> '2-HIGH'
-   then 1
-   else 0
-  end) as low_line_count
-from ordertbl,
- lineitem
-where o_orderkey = l_orderkey  and
- l_shipmode in ('TRUCK', 'AIR')  and
- l_commitdate < l_receiptdate  and
- l_shipdate < l_commitdate  and
- l_receiptdate >= '1994-01-01'   and
- l_receiptdate < cast (date '1994-01-01' + interval '1 year' as date)
-group by l_shipmode
-order by l_shipmode;
+SELECT /* tdb=TPCH_Q16 */
+P_BRAND, P_TYPE, P_SIZE, COUNT(DISTINCT PS_SUPPKEY) AS SUPPLIER_CNT
+FROM PARTSUPP, PARTTBL
+WHERE P_PARTKEY = PS_PARTKEY AND P_BRAND <> 'Brand#25' AND P_TYPE NOT LIKE 'MEDIUM POLISHED%%'
+AND P_SIZE IN (2, 7, 24, 30, 27, 50, 23, 45) AND PS_SUPPKEY NOT IN (SELECT S_SUPPKEY FROM SUPPLIER
+WHERE S_COMMENT LIKE '%%Customer%%Complaints%%')
+GROUP BY P_BRAND, P_TYPE, P_SIZE
+ORDER BY SUPPLIER_CNT DESC, P_BRAND, P_TYPE, P_SIZE
+;
 
+SELECT /* tdb=TPCH_Q07 */
+SUPP_NATION, CUST_NATION, L_YEAR, SUM(VOLUME) AS REVENUE
+FROM ( SELECT N1.N_NAME AS SUPP_NATION, N2.N_NAME AS CUST_NATION, datepart(yy, L_SHIPDATE) AS L_YEAR,
+L_EXTENDEDPRICE*(1-L_DISCOUNT) AS VOLUME
+FROM SUPPLIER, LINEITEM, ORDERTBL, CUSTOMER, NATION N1, NATION N2
+WHERE S_SUPPKEY = L_SUPPKEY AND O_ORDERKEY = L_ORDERKEY AND C_CUSTKEY = O_CUSTKEY
+AND S_NATIONKEY = N1.N_NATIONKEY AND C_NATIONKEY = N2.N_NATIONKEY AND  ((N1.N_NAME = 'ARGENTINA' AND N2.N_NAME = 'PERU') OR
+(N1.N_NAME = 'PERU' AND N2.N_NAME = 'ARGENTINA')) AND
+L_SHIPDATE BETWEEN '1995-01-01' AND '1996-12-31' ) AS SHIPPING
+GROUP BY SUPP_NATION, CUST_NATION, L_YEAR
+ORDER BY SUPP_NATION, CUST_NATION, L_YEAR
+;
 
-select 
-/* tdb=TPCH_Q01 */
-l_returnflag,
- l_linestatus,
- sum(l_quantity)     as sum_qty,
- sum(l_extendedprice)    as sum_base_price,
- sum(l_extendedprice*(1-l_discount))  as sum_disc_price,
- sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
- avg(l_quantity)     as avg_qty,
- avg(l_extendedprice)    as avg_price,
- avg(l_discount)     as avg_disc,
- count(*)     as count_order
-from lineitem
-where l_shipdate <= cast ( date '1998-12-01' - interval '90 days' as date )
-group by l_returnflag,
-  l_linestatus
-order by l_returnflag,
-  l_linestatus; 
+SELECT /* tdb=TPCH_Q18 */
+TOP 100 C_NAME, C_CUSTKEY, O_ORDERKEY, O_ORDERDATE, O_TOTALPRICE, SUM(L_QUANTITY)
+FROM CUSTOMER, ORDERTBL, LINEITEM
+WHERE O_ORDERKEY IN (SELECT L_ORDERKEY FROM LINEITEM GROUP BY L_ORDERKEY HAVING
+SUM(L_QUANTITY) > 313) AND C_CUSTKEY = O_CUSTKEY AND O_ORDERKEY = L_ORDERKEY
+GROUP BY C_NAME, C_CUSTKEY, O_ORDERKEY, O_ORDERDATE, O_TOTALPRICE
+ORDER BY O_TOTALPRICE DESC, O_ORDERDATE
+;
 
+SELECT /* tdb=TPCH_Q08 */
+O_YEAR, SUM(CASE WHEN NATION = 'PERU' THEN VOLUME ELSE 0 END)/SUM(VOLUME) AS MKT_SHARE
+FROM (SELECT datepart(yy,O_ORDERDATE) AS O_YEAR, L_EXTENDEDPRICE*(1-L_DISCOUNT) AS VOLUME, N2.N_NAME AS NATION
+FROM PARTTBL, SUPPLIER, LINEITEM, ORDERTBL, CUSTOMER, NATION N1, NATION N2, REGION
+WHERE P_PARTKEY = L_PARTKEY AND S_SUPPKEY = L_SUPPKEY AND L_ORDERKEY = O_ORDERKEY
+AND O_CUSTKEY = C_CUSTKEY AND C_NATIONKEY = N1.N_NATIONKEY AND
+N1.N_REGIONKEY = R_REGIONKEY AND R_NAME = 'AMERICA' AND S_NATIONKEY = N2.N_NATIONKEY
+AND O_ORDERDATE BETWEEN '1995-01-01' AND '1996-12-31' AND P_TYPE= 'SMALL BRUSHED BRASS') AS ALL_NATIONS
+GROUP BY O_YEAR
+ORDER BY O_YEAR
+;
 
-select 
-/* tdb=TPCH_Q10 */
- c_custkey,
- c_name,
- sum(l_extendedprice*(1-l_discount)) as revenue,
- c_acctbal,
- n_name,
- c_address,
- c_phone,
- c_comment
-from customer,
- ordertbl,
- lineitem,
- nation
-where c_custkey = o_custkey  and
- l_orderkey = o_orderkey  and
- o_orderdate >= '1994-03-01'   and
- o_orderdate < cast (date '1994-03-01' + interval '3 months' as date) and
- l_returnflag = 'R'   and
- c_nationkey = n_nationkey
-group by c_custkey,
-  c_name,
-  c_acctbal,
-  c_phone,
-  n_name,
-  c_address,
-  c_comment
-order by revenue desc
-limit 20;
+SELECT /* tdb=TPCH_Q09 */
+NATION, O_YEAR, SUM(AMOUNT) AS SUM_PROFIT
+FROM (SELECT N_NAME AS NATION, datepart(yy, O_ORDERDATE) AS O_YEAR,
+L_EXTENDEDPRICE*(1-L_DISCOUNT)-PS_SUPPLYCOST*L_QUANTITY AS AMOUNT
+FROM PARTTBL, SUPPLIER, LINEITEM, PARTSUPP, ORDERTBL, NATION
+WHERE S_SUPPKEY = L_SUPPKEY AND PS_SUPPKEY= L_SUPPKEY AND PS_PARTKEY = L_PARTKEY AND
+P_PARTKEY= L_PARTKEY AND O_ORDERKEY = L_ORDERKEY AND S_NATIONKEY = N_NATIONKEY AND
+P_NAME LIKE '%%frosted%%') AS PROFIT
+GROUP BY NATION, O_YEAR
+ORDER BY NATION, O_YEAR DESC
+;
 
+SELECT /* tdb=TPCH_Q17 */
+SUM(L_EXTENDEDPRICE)/7.0 AS AVG_YEARLY FROM LINEITEM, PARTTBL
+WHERE P_PARTKEY = L_PARTKEY AND P_BRAND = 'Brand#53' AND P_CONTAINER = 'SM BOX'
+AND L_QUANTITY < (SELECT 0.2*AVG(L_QUANTITY) FROM LINEITEM WHERE L_PARTKEY = P_PARTKEY)
+;
 
-select 
-/* tdb=TPCH_Q05 */
-n_name,
- sum(l_extendedprice*(1-l_discount)) as revenue
-from customer,
- ordertbl,
- lineitem,
- supplier,
- nation,
- region
-where c_custkey = o_custkey and
- l_orderkey = o_orderkey and
- l_suppkey = s_suppkey and
- c_nationkey = s_nationkey and
- s_nationkey = n_nationkey and
- n_regionkey = r_regionkey and
- r_name  = 'AFRICA' and
-        o_orderdate >= date '1993-01-01' and 
-     o_orderdate < cast (date '1993-01-01' + interval '1 year' as date)
-group by n_name
-order by revenue desc;
-
-
-select 
-/* tdb=TPCH_Q22 */
-cntrycode,
- count(*) as numcust,
- sum(c_acctbal) as totacctbal
-from (select substring(c_phone,1,2) as cntrycode, c_acctbal
-  from customer
-  where substring(c_phone,1,2) in ('24', '22', '34', '21', '32', '25', '30') and
-   c_acctbal > (select avg(c_acctbal)
-     from customer
-     where c_acctbal > 0.00 and
-     substring(c_phone,1,2) in ('24', '22', '34', '21', '32', '25', '30')
-     ) and
-   not exists (select *
-     from ordertbl
-     where o_custkey = c_custkey
-     )
- ) as custsale
-group by cntrycode
-order by cntrycode;
-
-
-select 
-/* tdb=TPCH_Q04 */
-o_orderpriority,
- count(*)  as order_count
-from ordertbl
-where o_orderdate >= '1994-12-01' and
- o_orderdate < cast (date '1994-12-01' + interval '3 months' as date) and
- exists  ( select *
-    from lineitem
-    where l_orderkey = o_orderkey and
-     l_commitdate < l_receiptdate
-   )
-group by o_orderpriority
-order by o_orderpriority;
-
-
-select 
-/* tdb=TPCH_Q11 */
-ps_partkey,
- sum(ps_supplycost*ps_availqty) as value
-from partsupp,
- supplier,
- nation
-where ps_suppkey = s_suppkey and
- s_nationkey = n_nationkey and
- n_name  = 'CHINA'
-group by ps_partkey
-having sum(ps_supplycost*ps_availqty) >
-  ( select sum(ps_supplycost*ps_availqty) * 0.000003333333333
-   from partsupp,
-    supplier,
-    nation
-   where ps_suppkey = s_suppkey and
-    s_nationkey = n_nationkey and
-    n_name  = 'CHINA'
-  )
-order by value desc;
-
-
-select 
-/* tdb=TPCH_Q16 */
-p_brand,
- p_type,
- p_size,
- count(distinct ps_suppkey) as supplier_cnt
-from partsupp,
- parttbl
-where p_partkey = ps_partkey and
- p_brand <> 'Brand#25' and
- p_type not like 'MEDIUM POLISHED%' and
- p_size in (2, 7, 24, 30, 27, 50, 23, 45) and
- ps_suppkey not in ( select s_suppkey
-     from supplier
-     where s_comment like '%Customer%Complaints%'
-    )
-group by p_brand,
-  p_type,
-  p_size
-order by supplier_cnt desc,
-  p_brand,
-  p_type,
-  p_size;
-
-
-select 
-/* tdb=TPCH_Q07 */
-supp_nation,
- cust_nation,
- l_year,
- sum(volume) as revenue
-from ( select n1.n_name   as supp_nation,
-   n2.n_name   as cust_nation,
-   extract(year from l_shipdate) as l_year,
-   l_extendedprice*(1-l_discount) as volume
-  from supplier,
-   lineitem,
-   ordertbl,
-   customer,
-   nation n1,
-   nation n2
-  where s_suppkey = l_suppkey and
-   o_orderkey = l_orderkey and
-   c_custkey = o_custkey and
-   s_nationkey = n1.n_nationkey and
-   c_nationkey = n2.n_nationkey and
-   ( (n1.n_name = 'ARGENTINA' and n2.n_name = 'PERU')
-    or
-    (n1.n_name = 'PERU' and n2.n_name = 'ARGENTINA')
-   ) and
-   l_shipdate between '1995-01-01' and '1996-12-31'
- ) as shipping
-group by supp_nation,
-  cust_nation,
-  l_year
-order by supp_nation,
-  cust_nation,
-  l_year;
-
-
-select 
-/* tdb=TPCH_Q18 */
- c_name,
- c_custkey,
- o_orderkey,
- o_orderdate,
- o_totalprice,
- sum(l_quantity)
-from customer,
- ordertbl,
- lineitem
-where o_orderkey in (select l_orderkey
-    from lineitem
-    group by l_orderkey having sum(l_quantity) > 313
-    ) and
- c_custkey = o_custkey and
- o_orderkey = l_orderkey
-group by c_name,
-  c_custkey,
-  o_orderkey,
-  o_orderdate,
-  o_totalprice
-order by o_totalprice desc,
-  o_orderdate
-limit 100;
-
-
-select 
-/* tdb=TPCH_Q08 */
-o_year,
- sum(case when nation = 'PERU'
-   then volume
-   else 0
-   end) / sum(volume) as mkt_share
-from ( select 
-                   extract(year from o_orderdate) as o_year,
-   l_extendedprice * (1-l_discount) as volume,
-   n2.n_name    as nation
-  from parttbl,
-   supplier,
-   lineitem,
-   ordertbl,
-   customer,
-   nation n1,
-   nation n2,
-   region
-  where p_partkey = l_partkey and
-   s_suppkey = l_suppkey and
-   l_orderkey = o_orderkey and
-   o_custkey = c_custkey and
-   c_nationkey = n1.n_nationkey and
-   n1.n_regionkey = r_regionkey and
-   r_name = 'AMERICA' and
-   s_nationkey = n2.n_nationkey and
-   o_orderdate between '1995-01-01' and '1996-12-31' and
-   p_type  = 'SMALL BRUSHED BRASS'
- ) as all_nations
-group by o_year
-order by o_year;
-
-
-select 
-/* tdb=TPCH_Q09 */
-nation,
- o_year,
- sum(amount) as sum_profit
-from ( select n_name       as nation,
-   extract(year from o_orderdate) as o_year,
-   l_extendedprice*(1-l_discount)-ps_supplycost*l_quantity as amount
-  from parttbl,
-   supplier,
-   lineitem,
-   partsupp,
-   ordertbl,
-   nation
-  where s_suppkey = l_suppkey and
-   ps_suppkey = l_suppkey and
-   ps_partkey = l_partkey and
-   p_partkey = l_partkey and
-   o_orderkey = l_orderkey and
-   s_nationkey = n_nationkey and
-   p_name  like '%frosted%'
- ) as profit
-group by nation,
-  o_year
-order by nation,
-  o_year desc;
-
-
-select 
-/* tdb=TPCH_Q17 */
-sum(l_extendedprice)/7.0 as avg_yearly
-from lineitem,
- parttbl
-where p_partkey = l_partkey and
- p_brand  = 'Brand#53' and
- p_container = 'SM BOX' and
- l_quantity < (select 0.2 * avg(l_quantity)
-    from lineitem
-    where l_partkey = p_partkey
-    );
-
-
-with /* tdb=TPCH_Q15 */ revenue0 AS (
-    select
-        l_suppkey as supplier_no,
-        sum(l_extendedprice * (1 - l_discount)) as total_revenue
-    from
-        lineitem
-    where
-        l_shipdate >= '1994-02-01' and
-        l_shipdate < cast (date '1994-02-01' + interval '3 months' as date)
-    group by
-        l_suppkey)
-select 
-    s_suppkey,
-    s_name,
-    s_address,
-    s_phone,
-    total_revenue
-from
-    supplier,
-    revenue0
-where
-    s_suppkey = supplier_no
-    and total_revenue = (
-        select
-            max(total_revenue)
-        from
-            revenue0
-    )
-order by
-    s_suppkey;
+WITH /* tdb=TPCH_Q15 */
+REVENUE0 AS (
+SELECT 
+  L_SUPPKEY AS SUPPLIER_NO, 
+  SUM(L_EXTENDEDPRICE*(1-L_DISCOUNT)) AS TOTAL_REVENUE
+FROM LINEITEM
+WHERE L_SHIPDATE >= '1994-02-01' AND L_SHIPDATE < DATEADD(MM, 3, CAST('1994-02-01' AS DATETIME))
+GROUP BY L_SUPPKEY
+)
+SELECT S_SUPPKEY, S_NAME, S_ADDRESS, S_PHONE, TOTAL_REVENUE
+FROM SUPPLIER, REVENUE0
+WHERE S_SUPPKEY = SUPPLIER_NO AND TOTAL_REVENUE = (SELECT MAX(TOTAL_REVENUE) FROM REVENUE0)
+ORDER BY S_SUPPKEY
+;
 ```
 
 </details>
@@ -724,9 +461,20 @@ order by
 <details>
 
 ```sql
-select * from SYS_QUERY_HISTORY;
-
-select * from STL_QUERY; -- Provisioned Clusters only
+SELECT  r.[request_id]                           
+,       r.[status]                               
+,       r.resource_class                         
+,       r.command
+,       sum(bytes_processed) AS bytes_processed
+,       sum(rows_processed) AS rows_processed
+FROM    sys.dm_pdw_exec_requests r
+              JOIN sys.dm_pdw_dms_workers w
+                     ON r.[request_id] = w.request_id
+WHERE session_id <> session_id() and type = 'WRITER'
+GROUP BY r.[request_id]                           
+,       r.[status]                               
+,       r.resource_class                         
+,       r.command;
 ```
 
 </details>
