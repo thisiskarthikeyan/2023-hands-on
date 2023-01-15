@@ -494,7 +494,7 @@ create login benchmark with password='17095ViaDelCampo';
 --use sql pool database
 create user benchmark for login benchmark;
 
-exec sp_addrolemember 'db_owner', 'benchmark';
+exec sp_addrolemember 'db_datareader', 'benchmark';
 ```
 
 </details>
@@ -548,13 +548,87 @@ ORDER BY O_TOTALPRICE DESC, O_ORDERDATE
 
 ## Usability Features
 
-### External Tables
+### Dynamic Data Masking
 
 <details>
 
 ```sql
+alter table CUSTOMER alter column c_name add masked with (function = 'default()');
 
+EXECUTE AS USER='benchmark';
+select top 10 * from CUSTOMER;
 
+alter table CUSTOMER alter column c_name drop masked;
+```
+
+</details>
+
+### External Data Sources
+
+<details>
+
+```sql
+create master key encryption by password = '17095ViaDelCampo';
+open master key decryption by password = '17095ViaDelCampo';
+
+create database scoped credential AzureStorageCredential
+with
+    identity = 'mcg',
+    secret = 'GE+EHbRey/07RrZjO7eEoSQVZsozTqnKC02ZlBTpqiNUYClkN6dDa35D3aQfkaFj/grs85XRtOFG+AStL6qxmg==';
+
+create external data source mcgtpch
+with (
+    type = hadoop,
+    location = 'wasbs://tpch@tdalpha.blob.core.windows.net',
+    credential = AzureStorageCredential
+);
+create external file format CSVPipe
+with (
+    format_type = DelimitedText,
+    format_options (field_terminator = '|')
+);
+create external file format CompressedPipe
+with (
+    format_type = DelimitedText,
+    format_options (field_terminator = '|'),
+    data_compression = 'org.apache.hadoop.io.compress.GzipCodec'
+);
+
+create external table CUSTOMER_EXT (
+	c_custkey integer not null,
+	c_name varchar(25) not null,
+	c_address varchar(40) not null,
+	c_nationkey integer not null,
+	c_phone char(15) not null,
+	c_acctbal decimal(15,2) not null,
+	c_mktsegment char(10) not null,
+	c_comment varchar(117) not null
+) with (
+   location='/tpch/customer/'
+  ,data_source=mcgtpch
+  ,file_format=CSVPipe
+  ,reject_type=value
+  ,reject_value=0)
+;
+
+select count(*) from CUSTOMER_EXT;
+```
+
+</details>
+
+### Studio Charts
+
+<details>
+
+```sql
+SELECT /* tdb=TPCH_Q18 */
+TOP 100 C_NAME, SUM(O_TOTALPRICE), SUM(L_QUANTITY)
+FROM CUSTOMER, ORDERTBL, LINEITEM
+WHERE O_ORDERKEY IN (SELECT L_ORDERKEY FROM LINEITEM GROUP BY L_ORDERKEY HAVING
+SUM(L_QUANTITY) > 313) AND C_CUSTKEY = O_CUSTKEY AND O_ORDERKEY = L_ORDERKEY
+GROUP BY C_NAME
+ORDER BY SUM(O_TOTALPRICE) DESC
+;
 ```
 
 </details>
