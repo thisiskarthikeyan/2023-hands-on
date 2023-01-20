@@ -6,7 +6,7 @@ Welcome to the 2023 Competitive Hands-On Training for the following cloud data w
 - [Amazon Redshift](redshift.md)
 - [Google BigQuery](bigquery.md)
 - [Azure Synapse Analytics](synapse.md)
-- Databricks
+- [Databricks](databricks.md)
 
 ## Setup
 
