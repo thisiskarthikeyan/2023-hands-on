@@ -1,5 +1,5 @@
 # Competitive Hands-On Training - 2023 Q1
-# Snowflake
+# Databricks
 
 ## Login
 https://of53892.us-east-1.snowflakecomputing.com/
