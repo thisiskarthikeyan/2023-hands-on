@@ -2,9 +2,67 @@
 # Databricks
 
 ## Login
-https://of53892.us-east-1.snowflakecomputing.com/
+https://accounts.cloud.databricks.com/
+
+Username
+```
+tdalpha2023@gmail.com
+```
+or another username provided to you.
+
+Password
+```
+17095ViaDelCampo!
+```
+
+AWS Account ID
+```
+791221762878
+```
 
 ## Basic Functionality
+
+### Token-based access
+
+<details>
+
+#### Databricks Personal Access Token
+```bash
+export DBSQLCLI_ACCESS_TOKEN="dapi6a1e919655c0970830c0871fa4741897"
+```
+
+#### AWS Session Token
+```bash
+aws iam create-access-key --user-name tdalpha2023@gmail.com
+```
+```json
+{
+    "AccessKey": {
+        "UserName": "tdalpha2023@gmail.com",
+        "Status": "Active",
+        "CreateDate": "2023-01-21T16:27:36Z",
+        "SecretAccessKey": "lY8rg/SJacOgG9TrANj0dP14gWJVXvr7OwTLmMBD",
+        "AccessKeyId": "AKIA3QOD57M7CU37FFUC"
+    }
+}
+```
+```bash
+aws sts assume-role --role-arn arn:aws:iam::791221762878:role/databricks-tpch-access-data-buckets --role-session-name "copyinto" --duration-seconds 43200 --profile tdalpha2023@gmail.com
+```
+```json
+{
+    "AssumedRoleUser": {
+        "AssumedRoleId": "AROA3QOD57M7CXPYC4NLC:copyinto",
+        "Arn": "arn:aws:sts::791221762878:assumed-role/databricks-tpch-access-data-buckets/copyinto"
+    },
+    "Credentials": {
+        "SecretAccessKey": "9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh",
+        "SessionToken": "FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE=",
+        "Expiration": "2023-01-22T04:34:30Z",
+        "AccessKeyId": "ASIA3QOD57M7JDEQFAPU"
+    }
+}
+```
 
 ### Create Warehouse, Database, and Tables
 
