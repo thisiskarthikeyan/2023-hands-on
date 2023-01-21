@@ -64,171 +64,350 @@ aws sts assume-role --role-arn arn:aws:iam::791221762878:role/databricks-tpch-ac
 }
 ```
 
-### Create Warehouse, Database, and Tables
+</details>
+
+### Create Tables
 
 <details>
 
 ```sql
-set MYNAME='NAME_FOR_YOUR_STUFF';
+-- nation
+CREATE OR REPLACE TABLE nation (
+	n_nationkey int,
+	n_name varchar(25),
+	n_regionkey int,
+	n_comment varchar(152)
+);
 
-create or replace warehouse identifier($MYNAME) 
-    warehouse_size=xsmall
-    initially_suspended=true
-    min_cluster_count=1
-    max_cluster_count=1
-    auto_suspend=300;
+-- region
+CREATE OR REPLACE TABLE region (
+	r_regionkey int,
+	r_name varchar(25),
+	r_comment varchar(152)
+);
 
-create or replace database identifier($MYNAME);
-use identifier($MYNAME);
+-- supplier
+CREATE OR REPLACE TABLE supplier (
+	s_suppkey int,
+	s_name varchar(25),
+	s_address varchar(40),
+	s_nationkey int,
+	s_phone varchar(15),
+	s_acctbal decimal(12,2),
+	s_comment varchar(101)
+);
 
---nation
-create or replace table nation
-     (
-      n_nationkey integer,
-      n_name varchar(25),
-      n_regionkey integer,
-      n_comment varchar(152)
-     );
+-- partsupp
+CREATE OR REPLACE TABLE partsupp (
+	ps_partkey int,
+	ps_suppkey int,
+	ps_availqty int,
+	ps_supplycost decimal(12,2),
+	ps_comment varchar(199)
+);
 
---region
-create or replace table region
-     (
-      r_regionkey integer,
-      r_name varchar(25),
-      r_comment varchar(152)
-     );
+-- part
+CREATE OR REPLACE TABLE parttbl (
+	p_partkey int,
+	p_name varchar(55),
+	p_mfgr varchar(25),
+	p_brand varchar(10),
+	p_type varchar(25),
+	p_size int,
+	p_container varchar(10),
+	p_retailprice decimal(12,2),
+	p_comment varchar(23)
+);
 
---supplier
-create or replace table supplier
-     (
-      s_suppkey integer,
-      s_name varchar(25),
-      s_address varchar(40),
-      s_nationkey integer,
-      s_phone varchar(15),
-      s_acctbal decimal(15,2),
-      s_comment varchar(101)
-     );
+-- customer
+CREATE OR REPLACE TABLE customer (
+	c_custkey int,
+	c_name varchar(25),
+	c_address varchar(40),
+	c_nationkey int,
+	c_phone varchar(15),
+	c_acctbal decimal(12,2),
+	c_mktsegment varchar(10),
+	c_comment varchar(117)
+);
 
---customer
-create or replace table customer
-     (
-      c_custkey integer,
-      c_name varchar(25),
-      c_address varchar(40),
-      c_nationkey integer,
-      c_phone varchar(15),
-      c_acctbal decimal(15,2),
-      c_mktsegment char(10),
-      c_comment varchar(117)
-     );
+-- orders
+CREATE OR REPLACE TABLE ordertbl (
+	o_orderkey bigint,
+	o_custkey int,
+	o_orderstatus varchar(1),
+	o_totalprice decimal(12,2),
+	o_orderdate date,
+	o_orderpriority varchar(15),
+	o_clerk varchar(15),
+	o_shippriority int,
+	o_comment varchar(79)
+) PARTITIONED BY(o_orderdate);
 
---parttbl
-create or replace table parttbl
-     (
-      p_partkey bigint,
-      p_name varchar(55),
-      p_mfgr char(25),
-      p_brand char(10),
-      p_type varchar(25),
-      p_size integer,
-      p_container char(10),
-      p_retailprice decimal(15,2),
-      p_comment varchar(23)
-     );
-
---partsupp
-create or replace table partsupp
-     (
-      ps_partkey bigint,
-      ps_suppkey integer,
-      ps_availqty integer,
-      ps_supplycost decimal(15,2),
-      ps_comment varchar(199)
-     );
-
---ordertbl
-create or replace table ordertbl
-     (
-      o_orderkey bigint,
-      o_custkey integer,
-      o_orderstatus char(1),
-      o_totalprice decimal(15,2),
-      o_orderdate date,
-      o_orderpriority char(15),
-      o_clerk varchar(15),
-      o_shippriority integer,
-      o_comment varchar(79)
-     );
-
---lineitem
-create or replace table lineitem
-     (
-      l_orderkey bigint,
-      l_partkey bigint,
-      l_suppkey integer,
-      l_linenumber integer,
-      l_quantity decimal(15,2),
-      l_extendedprice decimal(15,2),
-      l_discount decimal(15,2),
-      l_tax decimal(15,2),
-      l_returnflag char(1),
-      l_linestatus char(1),
-      l_shipdate date,
-      l_commitdate date,
-      l_receiptdate date,
-      l_shipinstruct char(25),
-      l_shipmode char(10),
-      l_comment varchar(44)
-     );
-
---revenue0 view
-create or replace view revenue0 (supplier_no, total_revenue) as
-select
-    l_suppkey,
-    sum(l_extendedprice * (1 - l_discount))
-from
-    lineitem
-where
-    l_shipdate >= '1996-01-01' and l_shipdate < dateadd(month, 3, '1996-01-01')
-group by
-    l_suppkey;
-
-select get_ddl('table', 'lineitem');
-
-select get_ddl('view', 'revenue0');
+-- lineitem
+CREATE OR REPLACE TABLE lineitem (
+	l_orderkey bigint,
+	l_partkey int,
+	l_suppkey int,
+	l_linenumber int,
+	l_quantity decimal(12,2),
+	l_extendedprice decimal(12,2),
+	l_discount decimal(12,2),
+	l_tax decimal(12,2),
+	l_returnflag varchar(1),
+	l_linestatus varchar(1),
+	l_shipdate date,
+	l_commitdate date,
+	l_receiptdate date,
+	l_shipinstruct varchar(25),
+	l_shipmode varchar(10),
+	l_comment varchar(44)
+) PARTITIONED BY(l_shipdate);
 ```
 
 </details>
 
-### Loading Data (Directly from S3)
+### Loading Delta Lake (Directly from S3)
 
 <details>
 
 ```sql
-create or replace file format abench_filefmt
-	type = 'CSV'
-	field_delimiter = '|'
-    field_optionally_enclosed_by = '"'
-    date_format = 'YYYY-MM-DD'
-    error_on_column_count_mismatch=false
-    encoding = 'iso-8859-1';
+COPY INTO nation
+FROM (
+  SELECT 
+    CAST(_c0 AS int) AS n_nationkey, 
+    _c1 AS n_name, 
+    CAST(_c2 AS int) AS n_regionkey, 
+    _c3 AS n_comment 
+  FROM 
+    's3://mcg-tdc2/tpch/30gb/'
+WITH (
+  CREDENTIAL (
+    AWS_ACCESS_KEY = 'ASIA3QOD57M7JDEQFAPU',
+    AWS_SECRET_KEY = '9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh',
+    AWS_SESSION_TOKEN = 'FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE='
+    )
+  )
+)
+FILEFORMAT = CSV
+PATTERN = 'nation.*'
+FORMAT_OPTIONS (
+  'delimiter' = '|'
+)
+COPY_OPTIONS (
+  'force' = 'true'
+);
 
-create or replace stage abench_s3_stage
-	file_format = abench_filefmt
-	credentials = (
-	    aws_key_id='AKIA3QOD57M7H2SLFMGA'
-	    aws_secret_key='UrFZFfjaHJJdB6QATUizxG+JeRQqauAoVrT8u0Y9')
-	url = 's3://mcg-tdc2/tpch/30gb';
+COPY INTO region
+FROM (
+  SELECT 
+    CAST(_c0 AS int) AS r_regionkey, 
+    _c1 AS r_name, 
+    _c2 AS r_comment 
+  FROM 
+    's3://mcg-tdc2/tpch/30gb/'
+WITH (
+  CREDENTIAL (
+    AWS_ACCESS_KEY = 'ASIA3QOD57M7JDEQFAPU',
+    AWS_SECRET_KEY = '9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh',
+    AWS_SESSION_TOKEN = 'FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE='
+    )
+  )
+)
+FILEFORMAT = CSV
+PATTERN = 'region.*'
+FORMAT_OPTIONS (
+  'delimiter' = '|'
+)
+COPY_OPTIONS (
+  'force' = 'true'
+);
 
-copy into nation from @abench_s3_stage pattern = '.*nation.*';
-copy into region from @abench_s3_stage pattern = '.*region.*';
-copy into supplier from @abench_s3_stage pattern = '.*supplier.*';
-copy into parttbl from @abench_s3_stage pattern = '.*part\.tbl.*'; 
-copy into partsupp from @abench_s3_stage pattern = '.*partsupp.*';
-copy into customer from @abench_s3_stage pattern = '.*customer.*';
-copy into ordertbl from @abench_s3_stage pattern = '.*orders.*';
-copy into lineitem from @abench_s3_stage pattern = '.*lineitem.*';
+COPY INTO supplier
+FROM (
+  SELECT 
+    CAST(_c0 AS int) AS s_suppkey, 
+    _c1 AS s_name,
+    _c2 AS s_address,
+    CAST(_c3 AS int) AS s_nationkey,
+    _c4 AS s_phone,
+    CAST(_c5 AS decimal(12,2)) AS s_acctbal,    
+    _c6 AS s_comment 
+  FROM 
+    's3://mcg-tdc2/tpch/30gb/'
+WITH (
+  CREDENTIAL (
+    AWS_ACCESS_KEY = 'ASIA3QOD57M7JDEQFAPU',
+    AWS_SECRET_KEY = '9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh',
+    AWS_SESSION_TOKEN = 'FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE='
+    )
+  )
+)
+FILEFORMAT = CSV
+PATTERN = 'supplier.*'
+FORMAT_OPTIONS (
+  'delimiter' = '|'
+)
+COPY_OPTIONS (
+  'force' = 'true'
+);
+
+COPY INTO partsupp
+FROM (
+  SELECT 
+    CAST(_c0 AS int) AS ps_partkey, 
+    CAST(_c1 AS int) AS ps_suppkey, 
+    CAST(_c2 AS int) AS ps_availqty,
+    CAST(_c3 AS decimal(12,2)) AS ps_supplycost,    
+    _c4 AS ps_comment 
+  FROM 
+    's3://mcg-tdc2/tpch/30gb/'
+WITH (
+  CREDENTIAL (
+    AWS_ACCESS_KEY = 'ASIA3QOD57M7JDEQFAPU',
+    AWS_SECRET_KEY = '9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh',
+    AWS_SESSION_TOKEN = 'FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE='
+    )
+  )
+)
+FILEFORMAT = CSV
+PATTERN = 'partsupp.*'
+FORMAT_OPTIONS (
+  'delimiter' = '|'
+)
+COPY_OPTIONS (
+  'force' = 'true'
+);
+
+COPY INTO parttbl
+FROM (
+  SELECT 
+    CAST(_c0 AS int) AS p_partkey,
+    _c1 AS p_name,
+    _c2 AS p_mfgr,
+    _c3 AS p_brand,
+    _c4 AS p_type,
+    CAST(_c5 AS int) AS p_size, 
+    _c6 AS p_container,
+    CAST(_c7 AS decimal(12,2)) AS p_retailprice,    
+    _c8 AS p_comment 
+  FROM 
+    's3://mcg-tdc2/tpch/30gb/'
+WITH (
+  CREDENTIAL (
+    AWS_ACCESS_KEY = 'ASIA3QOD57M7JDEQFAPU',
+    AWS_SECRET_KEY = '9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh',
+    AWS_SESSION_TOKEN = 'FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE='
+    )
+  )
+)
+FILEFORMAT = CSV
+PATTERN = 'part\.tbl.*'
+FORMAT_OPTIONS (
+  'delimiter' = '|'
+)
+COPY_OPTIONS (
+  'force' = 'true'
+);
+
+COPY INTO customer
+FROM (
+  SELECT 
+    CAST(_c0 AS int) AS c_custkey,
+    _c1 AS c_name,
+    _c2 AS c_address,
+    CAST(_c3 AS int) AS c_nationkey,
+    _c4 AS c_phone,
+    CAST(_c7 AS decimal(12,2)) AS c_acctbal, 
+    _c6 AS c_mktsegment,
+    _c7 AS c_comment 
+  FROM 
+    's3://mcg-tdc2/tpch/30gb/'
+WITH (
+  CREDENTIAL (
+    AWS_ACCESS_KEY = 'ASIA3QOD57M7JDEQFAPU',
+    AWS_SECRET_KEY = '9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh',
+    AWS_SESSION_TOKEN = 'FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE='
+    )
+  )
+)
+FILEFORMAT = CSV
+PATTERN = 'customer.*'
+FORMAT_OPTIONS (
+  'delimiter' = '|'
+)
+COPY_OPTIONS (
+  'force' = 'true'
+);
+
+COPY INTO ordertbl
+FROM (
+  SELECT 
+    CAST(_c0 AS bigint) AS o_orderkey,
+    CAST(_c1 AS int) AS o_custkey,
+    _c2 AS o_orderstatus,
+    CAST(_c3 AS decimal(12,2)) AS o_totalprice, 
+    CAST(_c4 AS date) AS o_orderdate,
+    _c5 AS o_orderpriority,
+    _c6 AS o_clerk,
+    CAST(_c7 AS int) AS o_shippriority,
+    _c8 AS o_comment 
+  FROM 
+    's3://mcg-tdc2/tpch/30gb/'
+WITH (
+  CREDENTIAL (
+    AWS_ACCESS_KEY = 'ASIA3QOD57M7JDEQFAPU',
+    AWS_SECRET_KEY = '9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh',
+    AWS_SESSION_TOKEN = 'FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE='
+    )
+  )
+)
+FILEFORMAT = CSV
+PATTERN = 'orders.*'
+FORMAT_OPTIONS (
+  'delimiter' = '|'
+)
+COPY_OPTIONS (
+  'force' = 'true'
+);
+
+COPY INTO lineitem
+FROM (
+  SELECT 
+    CAST(_c0 AS bigint) AS l_orderkey,
+    CAST(_c1 AS int) AS l_partkey,
+    CAST(_c2 AS int) AS l_suppkey,
+    CAST(_c3 AS int) AS l_linenumber,
+    CAST(_c4 AS decimal(12,2)) AS l_quantity, 
+    CAST(_c5 AS decimal(12,2)) AS l_extendedprice, 
+    CAST(_c6 AS decimal(12,2)) AS l_discount, 
+    CAST(_c7 AS decimal(12,2)) AS l_tax, 
+    _c8 AS l_returnflag,
+    _c9 AS l_linestatus,
+    CAST(_c10 AS date) AS l_shipdate,
+    CAST(_c11 AS date) AS l_commitdate,
+    CAST(_c12 AS date) AS l_receiptdate,
+    _c13 AS l_shipinstruct,
+    _c14 AS l_shipmode,
+    _c15 AS l_comment 
+  FROM 
+    's3://mcg-tdc2/tpch/30gb/'
+WITH (
+  CREDENTIAL (
+    AWS_ACCESS_KEY = 'ASIA3QOD57M7JDEQFAPU',
+    AWS_SECRET_KEY = '9VDa/1EaVN/GP3ZePO4Hqg7WeUKtjElAET184vKh',
+    AWS_SESSION_TOKEN = 'FwoGZXIvYXdzEFIaDOU8DOd2oB0E3YmXUyKtAcYC/6fpoX8nAnznsTWgMo/Yf70POoYBANknaLtaQlFjgg+/NRMgQJY27PuTekno6XGxoCYuCRsAIpfwhgw0kKAZLp+1YgeyHxuYo+EFSbXALo7NS2wC1hjr+Qvw9KyUgRlbG/LrM6M7v9SSuHXPRviDam/hzYrCARXtQMCZkiV5mauBheJ6iGa+WhTMjAQCP3uhvUYQ8ucbR9dwcfd3GycPnDRquyzL10chF0XIKJaosJ4GMi1QHA+VE6p0wziCSegqRuV29ak7CwgUvddkKaRBV2xCb1HZcD+c6tCQEhQtkNE='
+    )
+  )
+)
+FILEFORMAT = CSV
+PATTERN = 'lineitem.tbl.9*'
+FORMAT_OPTIONS (
+  'delimiter' = '|'
+)
+COPY_OPTIONS (
+  'force' = 'true'
+);
 
 select 'customer' entity, count(*) from customer union all
 select 'lineitem' entity, count(*) from lineitem union all
