@@ -426,55 +426,54 @@ select 'supplier' entity, count(*) from supplier order by 2;
 <details>
 
 ```sql
-/* TPC_H  Query 6 - Forecasting Revenue Change */
+set use_cached_result = false;
+
 select /* tdb=TPCH_Q06 */
     sum(l_extendedprice*l_discount) as revenue
 from
     lineitem
 where
-    l_shipdate >= '1994-01-01'
-    and l_shipdate < dateadd(year, 1, to_date('1994-01-01'))
-    and l_discount between 0.06 - 0.01 and 0.06 + 0.01
-    and l_quantity < 24;
+    l_shipdate >= '1993-01-01'
+    and l_shipdate < dateadd(year, 1, to_date('1993-01-01', 'yyyy-MM-dd'))
+    and l_discount between 0.02 - 0.01 and 0.02 + 0.01
+    and l_quantity < 25;
 
-/* TPC_H  Query 19 - Discounted Revenue */
 select /* tdb=TPCH_Q19 */
-    sum(l_extendedprice * (1 - l_discount) ) as revenue
+	sum(l_extendedprice* (1 - l_discount)) as revenue
 from
-    lineitem,
-    parttbl
+	lineitem,
+	parttbl
 where
-    (
-        p_partkey = l_partkey
-        and trim(p_brand) = 'Brand#12'
-        and trim(p_container) in ( 'SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
-        and l_quantity >= 1 and l_quantity <= 1 + 10
-        and p_size between 1 and 5
-        and trim(l_shipmode) in ('AIR', 'AIR REG')
-        and trim(l_shipinstruct) = 'DELIVER IN PERSON'
-    )
-    or
-    (
-        p_partkey = l_partkey
-        and trim(p_brand) = 'Brand#23'
-        and trim(p_container) in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
-        and l_quantity >= 10 and l_quantity <= 10 + 10
-        and p_size between 1 and 10
-        and trim(l_shipmode) in ('AIR', 'AIR REG')
-        and trim(l_shipinstruct) = 'DELIVER IN PERSON'
-    )
-    or
-    (
-        p_partkey = l_partkey
-        and trim(p_brand) = 'Brand#34'
-        and trim(p_container) in ( 'LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
-        and l_quantity >= 20 and l_quantity <= 20 + 10
-        and p_size between 1 and 15
-        and trim(l_shipmode) in ('AIR', 'AIR REG')
-        and trim(l_shipinstruct) = 'DELIVER IN PERSON'
-    );
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#11'
+		and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+		and l_quantity >= 4 and l_quantity <= 4 + 10
+		and p_size between 1 and 5
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	)
+	or
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#33'
+		and p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+		and l_quantity >= 19 and l_quantity <= 19 + 10
+		and p_size between 1 and 10
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	)
+	or
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#35'
+		and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
+		and l_quantity >= 25 and l_quantity <= 25 + 10
+		and p_size between 1 and 15
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	);
 
-/* TPC_H  Query 13 - Customer Distribution */
 select /* tdb=TPCH_Q13 */
     c_count, count(*) as custdist
 from (
@@ -484,7 +483,7 @@ from (
     from
         customer left outer join ordertbl on
             c_custkey = o_custkey
-            and o_comment not like '%special%requests%'
+            and o_comment not like '%unusual%accounts%'
     group by
         c_custkey
     )as c_orders
@@ -494,7 +493,6 @@ order by
     custdist desc,
     c_count desc;
 
-/* TPC_H  Query 21 - Suppliers Who Kept Orders Waiting */
 select /* tdb=TPCH_Q21 */
     s_name,
     count(*) as numwait
@@ -528,7 +526,7 @@ where
             and l3.l_receiptdate > l3.l_commitdate
     )
     and s_nationkey = n_nationkey
-    and trim(n_name) = 'SAUDI ARABIA'
+    and trim(n_name) = 'IRAN'
 group by
     s_name
 order by
@@ -536,7 +534,6 @@ order by
     s_name
 limit 100;
 
-/* TPC_H  Query 14 - Promotion Effect */
 select /* tdb=TPCH_Q14 */
     100.00 * sum(case
         when p_type like 'PROMO%'
@@ -548,10 +545,9 @@ from
     parttbl
 where
     l_partkey = p_partkey
-    and l_shipdate >= '1995-09-01'
-    and l_shipdate < dateadd(month, 1, to_date('1995-09-01'));
+    and l_shipdate >= '1995-11-01'
+    and l_shipdate < dateadd(month, 1, to_date('1995-11-01', 'yyyy-MM-dd'));
 
-/* TPC_H  Query 3 - Shipping Priority */
 select /* tdb=TPCH_Q03 */
     l_orderkey,
     sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -562,11 +558,11 @@ from
     ordertbl,
     lineitem
 where
-    trim(c_mktsegment) = 'BUILDING'
+    trim(c_mktsegment) = 'FURNITURE'
     and c_custkey = o_custkey
     and l_orderkey = o_orderkey
-    and o_orderdate < '1995-03-15'
-    and l_shipdate > '1995-03-15'
+    and o_orderdate < '1995-03-13'
+    and l_shipdate > '1995-03-13'
 group by
     l_orderkey,
     o_orderdate,
@@ -576,7 +572,6 @@ order by
     o_orderdate
 limit 10;
 
-/* TPC_H  Query 20 - Potential Part Promotion */
 select /* tdb=TPCH_Q20 */
     s_name,
     s_address
@@ -595,7 +590,7 @@ where
                 from
                     parttbl
                 where
-                    p_name like 'forest%'
+                    p_name like 'blush%'
             )
             and ps_availqty > (
                 select
@@ -605,16 +600,15 @@ where
                 where
                     l_partkey = ps_partkey
                     and l_suppkey = ps_suppkey
-                    and l_shipdate >= '1994-01-01'
-                    and l_shipdate < dateadd(year, 1, to_date('1994-01-01'))
+                    and l_shipdate >= '1995-01-01'
+                    and l_shipdate < dateadd(year, 1, to_date('1995-01-01', 'yyyy-MM-dd'))
             )
     )
     and s_nationkey = n_nationkey
-    and trim(n_name) = 'CANADA'
+    and trim(n_name) = 'KENYA'
 order by
     s_name;
 
-/* TPC_H  Query 2 - Minimum Cost Supplier */
 select /* tdb=TPCH_Q02 */
     s_acctbal,
     s_name,
@@ -633,11 +627,11 @@ from
 where
     p_partkey = ps_partkey
     and s_suppkey = ps_suppkey
-    and p_size = 15
-    and p_type like '%BRASS'
+    and p_size = 32
+    and p_type like '%NICKEL'
     and s_nationkey = n_nationkey
     and n_regionkey = r_regionkey
-    and trim(r_name) = 'EUROPE'
+    and trim(r_name) = 'ASIA'
     and ps_supplycost = (
         select
             min(ps_supplycost)
@@ -651,7 +645,7 @@ where
             and s_suppkey = ps_suppkey
             and s_nationkey = n_nationkey
             and n_regionkey = r_regionkey
-            and trim(r_name) = 'EUROPE'
+            and trim(r_name) = 'ASIA'
     )
 order by
     s_acctbal desc,
@@ -660,7 +654,6 @@ order by
     p_partkey
 limit 100;
 
-/* TPC_H  Query 12 - Shipping Modes and Order Priority */
 select /* tdb=TPCH_Q12 */
     l_shipmode,
     sum(case
@@ -680,17 +673,16 @@ from
     lineitem
 where
     o_orderkey = l_orderkey
-    and trim(l_shipmode) in ('MAIL', 'SHIP')
+    and trim(l_shipmode) in ('TRUCK', 'AIR')
     and l_commitdate < l_receiptdate
     and l_shipdate < l_commitdate
     and l_receiptdate >= '1994-01-01'
-    and l_receiptdate < dateadd(year, 1, to_date('1994-01-01'))
+    and l_receiptdate < dateadd(year, 1, to_date('1994-01-01', 'yyyy-MM-dd'))
 group by
     l_shipmode
 order by
     l_shipmode;
 
-/* TPC_H  Query 1 - Pricing Summary Report */
 select /* tdb=TPCH_Q01 */
     l_returnflag,
     l_linestatus,
@@ -705,7 +697,7 @@ select /* tdb=TPCH_Q01 */
 from
     lineitem
 where
-    l_shipdate <= dateadd(day, -90, to_date('1998-12-01'))
+    l_shipdate <= dateadd(day, -90, to_date('1998-12-01', 'yyyy-MM-dd'))
 group by
     l_returnflag,
     l_linestatus
@@ -713,7 +705,6 @@ order by
     l_returnflag,
     l_linestatus;
 
-/* TPC_H  Query 10 - Returned Item Reporting */
 select /* tdb=TPCH_Q10 */
     c_custkey,
     c_name,
@@ -731,8 +722,8 @@ from
 where
     c_custkey = o_custkey
     and l_orderkey = o_orderkey
-    and o_orderdate >= '1993-10-01'
-    and o_orderdate < dateadd(month, 3, to_date('1993-10-01'))
+    and o_orderdate >= '1994-03-01'
+    and o_orderdate < dateadd(month, 3, to_date('1994-03-01', 'yyyy-MM-dd'))
     and l_returnflag = 'R'
     and c_nationkey = n_nationkey
 group by
@@ -747,7 +738,6 @@ order by
     revenue desc
 limit 20;
 
-/* TPC_H  Query 5 - Local Supplier Volume */
 select /* tdb=TPCH_Q05 */
     n_name,
     sum(l_extendedprice * (1 - l_discount)) as revenue
@@ -765,15 +755,14 @@ where
     and c_nationkey = s_nationkey
     and s_nationkey = n_nationkey
     and n_regionkey = r_regionkey
-    and trim(r_name) = 'ASIA'
-    and o_orderdate >= '1994-01-01'
-    and o_orderdate < dateadd(year, 1, to_date('1994-01-01'))
+    and trim(r_name) = 'AFRICA'
+    and o_orderdate >= '1993-01-01'
+    and o_orderdate < dateadd(year, 1, to_date('1993-01-01', 'yyyy-MM-dd'))
 group by
     n_name
 order by
     revenue desc;
 
-/* TPC_H  Query 22 - Global Sales Opportunity */
 select /* tdb=TPCH_Q22 */
     cntrycode,
     count(*) as numcust,
@@ -786,7 +775,7 @@ from (
         customer
     where
         substr(c_phone,1,2) in
-            ('13','31','23','29','30','18','17')
+            ('24', '22', '34', '21', '32', '25', '30')
         and c_acctbal > (
             select
                 avg(c_acctbal)
@@ -795,7 +784,7 @@ from (
             where
                 c_acctbal > 0.00
                 and substr (c_phone,1,2) in
-                    ('13','31','23','29','30','18','17')
+                    ('24', '22', '34', '21', '32', '25', '30')
         )
         and not exists (
             select
@@ -811,15 +800,14 @@ group by
 order by
     cntrycode;
 
-/* TPC_H  Query 4 - Order Priority Checking */
 select /* tdb=TPCH_Q04 */
     o_orderpriority,
     count(*) as order_count
     from
     ordertbl
 where
-    o_orderdate >= '1993-07-01'
-    and o_orderdate < dateadd(month, 3, to_date('1993-07-01'))
+    o_orderdate >= '1994-12-01'
+    and o_orderdate < dateadd(month, 3, to_date('1994-12-01', 'yyyy-MM-dd'))
     and exists (
         select
             *
@@ -834,7 +822,6 @@ group by
 order by
     o_orderpriority;
 
-/* TPC_H  Query 11 - Important Stock Indentification */
 select /* tdb=TPCH_Q11 */
     ps_partkey,
     sum(ps_supplycost * ps_availqty) as value
@@ -845,7 +832,7 @@ from
 where
     ps_suppkey = s_suppkey
     and s_nationkey = n_nationkey
-    and trim(n_name) = 'GERMANY'
+    and trim(n_name) = 'CHINA'
 group by
     ps_partkey having
         sum(ps_supplycost * ps_availqty) > (
@@ -858,12 +845,11 @@ group by
             where
                 ps_suppkey = s_suppkey
                 and s_nationkey = n_nationkey
-                and trim(n_name) = 'GERMANY'
+                and trim(n_name) = 'CHINA'
         )
 order by
     value desc;
 
-/* TPC_H  Query 16 - Parts/Supplier Relationship */
 select /* tdb=TPCH_Q16 */
     p_brand,
     p_type,
@@ -874,9 +860,9 @@ from
     parttbl
 where
     p_partkey = ps_partkey
-    and trim(p_brand) <> 'Brand#45'
+    and trim(p_brand) <> 'Brand#25'
     and p_type not like 'MEDIUM POLISHED%'
-    and p_size in (49, 14, 23, 45, 19, 3, 36, 9)
+    and p_size in (2, 7, 24, 30, 27, 50, 23, 45)
     and ps_suppkey not in (
         select
             s_suppkey
@@ -895,7 +881,6 @@ order by
     p_type,
     p_size;
 
-/* TPC_H  Query 7 - Volume Shipping */
 select /* tdb=TPCH_Q07 */
     supp_nation,
     cust_nation,
@@ -920,8 +905,8 @@ from (
         and s_nationkey = n1.n_nationkey
         and c_nationkey = n2.n_nationkey
         and (
-            (trim(n1.n_name) = 'FRANCE' and trim(n2.n_name) = 'GERMANY')
-            or (trim(n1.n_name) = 'GERMANY' and trim(n2.n_name) = 'FRANCE')
+            (trim(n1.n_name) = 'ARGENTINA' and trim(n2.n_name) = 'PERU')
+            or (trim(n1.n_name) = 'PERU' and trim(n2.n_name) = 'ARGENTINA')
         )
         and l_shipdate between '1995-01-01' and '1996-12-31'
     ) as shipping
@@ -934,7 +919,6 @@ order by
     cust_nation,
     l_year;
 
-/* TPC_H  Query 18 - Large Volume Customer */
 select /* tdb=TPCH_Q18 */
     c_name,
     c_custkey,
@@ -954,7 +938,7 @@ where
             lineitem
         group by
             l_orderkey having
-                sum(l_quantity) > 300
+                sum(l_quantity) > 313
     )
     and c_custkey = o_custkey
     and o_orderkey = l_orderkey
@@ -969,11 +953,10 @@ order by
     o_orderdate
 limit 100;
 
-/* TPC_H  Query 8 - National Market Share */
 select /* tdb=TPCH_Q08 */
     o_year,
     sum(case
-        when nation = 'BRAZIL'
+        when nation = 'PERU'
         then volume
         else 0
     end) / sum(volume) as mkt_share
@@ -1001,14 +984,13 @@ from (
         and trim(r_name) = 'AMERICA'
         and s_nationkey = n2.n_nationkey
         and o_orderdate between '1995-01-01' and '1996-12-31'
-        and p_type = 'ECONOMY ANODIZED STEEL'
+        and p_type = 'SMALL BRUSHED BRASS'
     ) as all_nations
 group by
     o_year
 order by
     o_year;
 
-/* TPC_H  Query 9 - Product Type Profit Measure */
 select /* tdb=TPCH_Q09 */
     nation,
     o_year,
@@ -1032,7 +1014,7 @@ from (
         and p_partkey = l_partkey
         and o_orderkey = l_orderkey
         and s_nationkey = n_nationkey
-        and p_name like '%green%'
+        and p_name like '%frosted%'
     ) as profit
 group by
     nation,
@@ -1041,7 +1023,6 @@ order by
     nation,
     o_year desc;
 
-/* TPC_H  Query 17 - Small-Quantity-Order Revenue */
 select /* tdb=TPCH_Q17 */
     sum(l_extendedprice) / 7.0 as avg_yearly
 from
@@ -1049,8 +1030,8 @@ from
     parttbl
 where
     p_partkey = l_partkey
-    and trim(p_brand) = 'Brand#23'
-    and trim(p_container) = 'MED BOX'
+    and trim(p_brand) = 'Brand#53'
+    and trim(p_container) = 'SM BOX'
     and l_quantity < (
         select
             0.2 * avg(l_quantity)
@@ -1060,8 +1041,18 @@ where
             l_partkey = p_partkey
     );
 
-/* TPC_H  Query 15 - Top Supplier */
-select /* tdb=TPCH_Q15 */
+with /* tdb=TPCH_Q15 */ revenue0 as (
+    select
+        l_suppkey as supplier_no,
+        sum(l_extendedprice * (1 - l_discount)) as total_revenue
+    from
+        lineitem
+    where
+        L_SHIPDATE >= '1994-02-01' AND
+        L_SHIPDATE < dateadd(month, 3, to_date('1994-02-01', 'yyyy-MM-dd'))
+    group by
+        l_suppkey)
+select
     s_suppkey,
     s_name,
     s_address,
@@ -1101,41 +1092,16 @@ order by start_time;
 
 </details>
 
-### Designing Tables (Clustering)
-
-<details>
-
-```sql
-create or replace schema clustered clone public;
-use tdalpha.clustered;
-
-alter table lineitem cluster by (l_shipdate);
-alter table ordertbl cluster by (o_orderdate);
-
-show tables like 'lineitem';
-show tables like 'ordertbl';
-
-select system$clustering_depth('lineitem') union all
-select system$clustering_depth('ordertbl');
-
-select system$clustering_information('lineitem') union all
-select system$clustering_information('ordertbl');
-
-select * from public.lineitem where l_shipdate = '1998-01-01';
-select * from clustered.lineitem where l_shipdate = '1998-01-01';
-```
-
-</details>
-
 ## Performance Features
 
-### Results Cache
+### Performance Tuning
 
 <details>
 
 ```sql
-alter account set use_cached_result = false; -- Requires ACCOUNTADMIN role
-alter user TDALPHA set use_cached_result = false;
+optimize partsupp zorder by ps_partkey;
+
+select * from partsupp limit 1000;
 ```
 
 </details>
@@ -1166,110 +1132,81 @@ order by 1;
 
 </details>
 
-### Transparent Materialized Views
-
-<details>
-
-```sql
-create materialized view mv_q18
-as
-select
-   l_orderkey, 
-   sum(l_quantity) sum_lq,
-   count(l_quantity) count_lq,
-   count(*) count_grp
-from
-   lineitem
-group by
-   l_orderkey;
-
-/* TPC_H  Query 18 - Large Volume Customer */
-select /* tdb=TPCH_Q18 */
-    c_name,
-    c_custkey,
-    o_orderkey,
-    o_orderdate,
-    o_totalprice,
-    sum(l_quantity)
-from
-    customer,
-    ordertbl,
-    lineitem
-where
-    o_orderkey in (
-        select
-            l_orderkey
-        from
-            lineitem
-        group by
-            l_orderkey having
-                sum(l_quantity) > 300
-    )
-    and c_custkey = o_custkey
-    and o_orderkey = l_orderkey
-group by
-    c_name,
-    c_custkey,
-    o_orderkey,
-    o_orderdate,
-    o_totalprice
-order by
-    o_totalprice desc,
-    o_orderdate
-limit 100;
-```
-
-</details>
-
-### Search Optimization Service
-
-<details>
-
-```sql
-select approx_count_distinct(o_clerk) from ordertbl;
-
-select o_clerk, count(*) cnt from ordertbl group by o_clerk order by cnt desc;
-
-select * from ordertbl where o_clerk in ('Clerk#000007320','Clerk#000024529','Clerk#000007341');
-select * from ordertbl where o_clerk like 'Clerk#000007%';
-
-alter table ordertbl add search optimization on equality(o_clerk);
-show tables like 'ordertbl';
-
-alter table ordertbl drop search optimization;
-alter table ordertbl add search optimization on equality(o_clerk), substring(o_clerk);
-```
-
-</details>
-
 ## Usability Features
 
-### External Tables
+### Filters, Parameters & Visualizations
 
 <details>
 
-```sql
-create or replace schema ext;
+Filter on NATION
 
-create or replace external table ext.customer
-     (
-      c_custkey integer as (value:c1::int),
-      c_name varchar(25) as (value:c2::varchar),
-      c_address varchar(40) as (value:c3::varchar),
-      c_nationkey integer as (value:c4::int),
-      c_phone varchar(15) as (value:c5::varchar),
-      c_acctbal decimal(15,2) as (value:c6::number),
-      c_mktsegment char(10) as (value:c7::varchar),
-      c_comment varchar(117) as (value:c8::varchar)
-     )
- with 
-    location = @public.abench_s3_stage
-    file_format = public.abench_filefmt
-    pattern = '.*customer.*';
- 
- select * from public.customer;
- select * from ext.customer;
- ```
+```sql
+select /* tdb=TPCH_Q09 */
+    nation,
+    o_year,
+    sum(amount) as sum_profit
+from (
+    select
+        n_name as nation,
+        extract(year from o_orderdate) as o_year,
+        l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
+    from
+        parttbl,
+        supplier,
+        lineitem,
+        partsupp,
+        ordertbl,
+        nation
+    where
+        s_suppkey = l_suppkey
+        and ps_suppkey = l_suppkey
+        and ps_partkey = l_partkey
+        and p_partkey = l_partkey
+        and o_orderkey = l_orderkey
+        and s_nationkey = n_nationkey
+        and p_name like '%frosted%'
+    ) as profit
+group by
+    nation,
+    o_year
+order by
+    nation,
+    o_year desc;
+```
+
+Parameter by P_CONTAINER
+
+```sql
+select /* tdb=TPCH_Q17 */
+    sum(l_extendedprice) / 7.0 as avg_yearly
+from
+    lineitem,
+    parttbl
+where
+    p_partkey = l_partkey
+    and trim(p_brand) = 'Brand#53'
+    and trim(p_container) = '{{ p_container }}'
+    and l_quantity < (
+        select
+            0.2 * avg(l_quantity)
+        from
+            lineitem
+        where
+            l_partkey = p_partkey
+    );
+```
+
+```
+SM DRUM
+SM CASE
+JUMBO BAG
+LG PKG
+SM PACK
+JUMBO DRUM
+LG BOX
+WRAP PKG
+LG DRUM
+```
 
 </details>
 
@@ -1328,130 +1265,3 @@ select count(*) from ordertbl;
 
 </details>
 
-### Snowsight Dashboards
-
-<details>
-
-```sql
-/* TPC_H  Query 3 - Shipping Priority */
-select /* tdb=TPCH_Q03 */
-    l_orderkey,
-    sum(l_extendedprice * (1 - l_discount)) as revenue,
-    o_orderdate,
-    o_shippriority
-from
-    customer,
-    ordertbl,
-    lineitem
-where
-    trim(c_mktsegment) = 'BUILDING'
-    and c_custkey = o_custkey
-    and l_orderkey = o_orderkey
-    and o_orderdate < '1995-03-15'
-    and l_shipdate > '1995-03-15'
-group by
-    l_orderkey,
-    o_orderdate,
-    o_shippriority
-order by
-    revenue desc,
-    o_orderdate
-limit 100;
-
-/* TPC_H  Query 18 - Large Volume Customer */
-select /* tdb=TPCH_Q18 */
-    c_name,
-    sum(o_totalprice),
-    sum(l_quantity)
-from
-    customer,
-    ordertbl,
-    lineitem
-where
-    o_orderkey in (
-        select
-            l_orderkey
-        from
-            lineitem
-        group by
-            l_orderkey having
-                sum(l_quantity) > 300
-    )
-    and c_custkey = o_custkey
-    and o_orderkey = l_orderkey
-group by
-    c_name
-order by
-    sum(o_totalprice) desc
-limit 100;
-
-/* TPC_H  Query 9 - Product Type Profit Measure */
-select /* tdb=TPCH_Q09 */
-    nation,
-    o_year,
-    sum(amount) as sum_profit
-from (
-    select
-        n_name as nation,
-        extract(year from o_orderdate) as o_year,
-        l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
-    from
-        parttbl,
-        supplier,
-        lineitem,
-        partsupp,
-        ordertbl,
-        nation
-    where
-        s_suppkey = l_suppkey
-        and ps_suppkey = l_suppkey
-        and ps_partkey = l_partkey
-        and p_partkey = l_partkey
-        and o_orderkey = l_orderkey
-        and s_nationkey = n_nationkey
-        and p_name like '%green%'
-        and n_nationkey < 5
-    ) as profit
-where
-    o_year < 1998
-group by
-    nation,
-    o_year
-order by
-    nation,
-    o_year desc;
-```
-
-</details>
-
-### Snowpark
-
-<details>
-
-```bash
-wget https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
-bash Anaconda3-2022.10-Linux-x86_64.sh
-conda create --name py38_env --override-channels -c https://repo.anaconda.com/pkgs/snowflake python=3.8 numpy pandas
-conda activate py38_env
-pip install notebook
-pip install snowflake-snowpark-python
-jupyter notebook
-```
-```python
-from snowflake.snowpark import Session
-connection_parameters = {
-    "account": "of53892.us-east-1",
-    "user": "tdalpha",
-    "password": "17095ViaDelCampo",
-    "role": "sysadmin",
-    "warehouse": "tdalpha",
-    "database": "tdalpha",
-    "schema": "public",
-  }  
-
-session = Session.builder.configs(connection_parameters).create()  
-
-session.sql("select count(*) from customer").collect()
-```
-
-</details>
