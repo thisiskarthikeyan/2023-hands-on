@@ -1106,32 +1106,6 @@ select * from partsupp limit 1000;
 
 </details>
 
-### Multi-clusters
-
-<details>
-
-```sql
-alter warehouse TDALPHA set max_concurrency_level = 32;
-
-alter warehouse TDALPHA set min_cluster_count = 1 max_cluster_count = 3;
-
-alter warehouse TDALPHA set scaling_policy = 'ECONOMY';
-
-select 
-  cluster_number,
-  sum(execution_time/1000),
-  sum(queued_overload_time/1000)
-from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
-where 
-  end_time between 
-    to_timestamp_tz('2022-12-24 20:11:16 -0000') 
-    and to_timestamp_tz('2022-12-24 20:15:04 -0000') 
-group by 1
-order by 1;
-```
-
-</details>
-
 ## Usability Features
 
 ### Filters, Parameters & Visualizations
@@ -1206,61 +1180,6 @@ JUMBO DRUM
 LG BOX
 WRAP PKG
 LG DRUM
-```
-
-</details>
-
-### Dynamic Data Masking
-
-<details>
-
-```sql
-create or replace masking policy name_mask as (val string) returns string ->
-  case
-    when current_role() in ('SECURITYADMIN') then val
-    else '*********'
-  end;
-  
-  alter table customer modify column c_name set masking policy name_mask;
-  
-  select * from customer limit 100;
-  
-  alter masking policy name_mask set body ->
-  case
-    when current_role() in ('SYSADMIN') then val
-    else '*********'
-  end;
-
-select * from customer limit 100;
-```
-
-</details>
-
-### Time Travel
-
-<details>
-
-```sql
-show tables like 'ordertbl';
-
-select count(*) from ordertbl;
-
-delete from ordertbl where o_orderkey < 1000;
-
-select count(*) from ordertbl;
-
-select count(*) from ordertbl at(offset => -60*5);
-
-create table restored_ordertbl clone ordertbl
-  at(offset => -60*5);
-
-select count(*) from restored_ordertbl;
-
-drop table ordertbl;
-
-alter table restored_ordertbl rename to ordertbl;
-
-select count(*) from ordertbl;
 ```
 
 </details>
