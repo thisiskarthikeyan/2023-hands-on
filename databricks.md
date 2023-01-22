@@ -1075,23 +1075,6 @@ order by
 
 </details>
 
-### Query History
-
-<details>
-
-```sql
-select 
-  *
-from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
-where 
-  end_time between 
-    to_timestamp_tz('2023-01-31 00:00:00 -0000') 
-    and to_timestamp_tz('2023-02-04 23:59:59 -0000') 
-order by start_time;
-```
-
-</details>
-
 ## Performance Features
 
 ### Performance Tuning
