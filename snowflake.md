@@ -4,6 +4,8 @@
 ## Login
 https://of53892.us-east-1.snowflakecomputing.com/
 
+You can then click Snowsight to use the latest GUI interface.
+
 ## Basic Functionality
 
 ### Create Warehouse, Database, and Tables

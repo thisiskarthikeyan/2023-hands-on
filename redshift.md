@@ -4,6 +4,8 @@
 ## Login
 https://791221762878.signin.aws.amazon.com/console
 
+Then use the search bar to find Redshift.
+
 ## Basic Functionality
 
 ### Create Warehouse, Database, and Tables
