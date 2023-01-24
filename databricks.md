@@ -1077,6 +1077,18 @@ order by
 
 ## Performance Features
 
+### Delta Lake
+
+<details>
+
+```sql
+describe detail ordertbl;
+
+describe history ordertbl;
+```
+
+</details>
+
 ### Performance Tuning
 
 <details>
@@ -1085,6 +1097,8 @@ order by
 optimize partsupp zorder by ps_partkey;
 
 select * from partsupp limit 1000;
+
+describe history partsupp;
 ```
 
 </details>
