@@ -856,10 +856,10 @@ order by
 ```sql
 select 
   *
-from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
+from table(information_schema.query_history_by_user(user_name => (select current_user()), result_limit => 10000)) 
 where 
   end_time between 
-    to_timestamp_tz('2023-01-31 00:00:00 -0000') 
+    to_timestamp_tz('2023-01-27 00:00:00 -0000') 
     and to_timestamp_tz('2023-02-04 23:59:59 -0000') 
 order by start_time;
 ```
@@ -872,7 +872,6 @@ order by start_time;
 
 ```sql
 create or replace schema clustered clone public;
-use tdalpha.clustered;
 
 alter table lineitem cluster by (l_shipdate);
 alter table ordertbl cluster by (o_orderdate);
