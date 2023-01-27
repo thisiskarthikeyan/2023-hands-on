@@ -909,11 +909,13 @@ alter user TDALPHA set use_cached_result = false;
 <details>
 
 ```sql
-alter warehouse CURRENT_WAREHOUSE() set max_concurrency_level = 32;
+set MYWAREHOUSE=(select CURRENT_WAREHOUSE());
 
-alter warehouse CURRENT_WAREHOUSE() set min_cluster_count = 1 max_cluster_count = 3;
+alter warehouse identifier($MYWAREHOUSE) set max_concurrency_level = 32;
 
-alter warehouse CURRENT_WAREHOUSE() set scaling_policy = 'ECONOMY';
+alter warehouse identifier($MYWAREHOUSE) set min_cluster_count = 1 max_cluster_count = 3;
+
+alter warehouse identifier($MYWAREHOUSE) set scaling_policy = 'ECONOMY';
 
 select 
   cluster_number,
