@@ -13,7 +13,7 @@ You can then click Snowsight to use the latest GUI interface.
 <details>
 
 ```sql
-set MYNAME='NAME_FOR_YOUR_STUFF';
+--set MYNAME='NAME_FOR_YOUR_STUFF';
 
 create or replace warehouse identifier($MYNAME) 
     warehouse_size=xsmall
@@ -163,7 +163,7 @@ create or replace stage abench_s3_stage
 	credentials = (
 	    aws_key_id='AKIA3QOD57M7H2SLFMGA'
 	    aws_secret_key='UrFZFfjaHJJdB6QATUizxG+JeRQqauAoVrT8u0Y9')
-	url = 's3://mcg-tdc2/tpch/30gb';
+	url = 's3://mcg-tdc2/tpch/30gb_unload';
 
 copy into nation from @abench_s3_stage pattern = '.*nation.*';
 copy into region from @abench_s3_stage pattern = '.*region.*';
