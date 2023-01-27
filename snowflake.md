@@ -168,10 +168,10 @@ create or replace stage abench_s3_stage
 copy into nation from @abench_s3_stage pattern = '.*nation.*';
 copy into region from @abench_s3_stage pattern = '.*region.*';
 copy into supplier from @abench_s3_stage pattern = '.*supplier.*';
-copy into parttbl from @abench_s3_stage pattern = '.*part\.tbl.*'; 
+copy into parttbl from @abench_s3_stage pattern = '.*parttbl.*'; 
 copy into partsupp from @abench_s3_stage pattern = '.*partsupp.*';
 copy into customer from @abench_s3_stage pattern = '.*customer.*';
-copy into ordertbl from @abench_s3_stage pattern = '.*orders.*';
+copy into ordertbl from @abench_s3_stage pattern = '.*ordertbl.*';
 copy into lineitem from @abench_s3_stage pattern = '.*lineitem.*';
 
 select 'customer' entity, count(*) from customer union all
