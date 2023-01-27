@@ -856,7 +856,7 @@ order by
 ```sql
 select 
   *
-from table(information_schema.query_history_by_user(user_name => (select current_user()), result_limit => 10000)) 
+from table(information_schema.query_history_by_user(user_name => (select CURRENT_USER()), result_limit => 10000)) 
 where 
   end_time between 
     to_timestamp_tz('2023-01-27 00:00:00 -0000') 
@@ -909,17 +909,17 @@ alter user TDALPHA set use_cached_result = false;
 <details>
 
 ```sql
-alter warehouse TDALPHA set max_concurrency_level = 32;
+alter warehouse CURRENT_WAREHOUSE() set max_concurrency_level = 32;
 
-alter warehouse TDALPHA set min_cluster_count = 1 max_cluster_count = 3;
+alter warehouse CURRENT_WAREHOUSE() set min_cluster_count = 1 max_cluster_count = 3;
 
-alter warehouse TDALPHA set scaling_policy = 'ECONOMY';
+alter warehouse CURRENT_WAREHOUSE() set scaling_policy = 'ECONOMY';
 
 select 
   cluster_number,
   sum(execution_time/1000),
   sum(queued_overload_time/1000)
-from table(information_schema.query_history_by_user(user_name => 'TDALPHA', result_limit => 10000)) 
+from table(information_schema.query_history_by_user(user_name => (select CURRENT_USER()), result_limit => 10000)) 
 where 
   end_time between 
     to_timestamp_tz('2022-12-24 20:11:16 -0000') 
