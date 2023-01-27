@@ -918,16 +918,17 @@ alter warehouse identifier($MYWAREHOUSE) set min_cluster_count = 1 max_cluster_c
 alter warehouse identifier($MYWAREHOUSE) set scaling_policy = 'ECONOMY';
 
 select 
+  split_part(split_part(query_text,'tdb=', 2), ' ', 1) as Query_Num,
   cluster_number,
   sum(execution_time/1000),
-  sum(queued_overload_time/1000)
+  sum(queued_overload_time/1000) --Time (in milliseconds) spent in the warehouse queue, due to the warehouse being overloaded by the current query workload
 from table(information_schema.query_history_by_user(user_name => (select CURRENT_USER()), result_limit => 10000)) 
 where 
   end_time between 
-    to_timestamp_tz('2022-12-24 20:11:16 -0000') 
-    and to_timestamp_tz('2022-12-24 20:15:04 -0000') 
-group by 1
-order by 1;
+    to_timestamp_tz('2023-01-27 22:49:37.952 -0000') 
+    and to_timestamp_tz('2023-01-27 22:53:16.098 -0000') 
+group by 1, 2
+order by 1, 2;
 ```
 
 </details>
