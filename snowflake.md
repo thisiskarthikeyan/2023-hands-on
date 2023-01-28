@@ -1195,15 +1195,30 @@ order by
 
 <details>
 
+Setup
 ```bash
 wget https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
+```
+```bash
 bash Anaconda3-2022.10-Linux-x86_64.sh
+```
+```bash
 conda create --name py38_env --override-channels -c https://repo.anaconda.com/pkgs/snowflake python=3.8 numpy pandas
+```
+```bash
 conda activate py38_env
+```
+```bash
 pip install notebook
+```
+```bash
 pip install snowflake-snowpark-python
+```
+```bash
 jupyter notebook
 ```
+
+Notebook
 ```python
 from snowflake.snowpark import Session
 connection_parameters = {
