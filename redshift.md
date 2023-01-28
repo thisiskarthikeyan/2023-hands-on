@@ -1061,15 +1061,19 @@ create table supplier as select * from public.SUPPLIER;
 ```sql
 select
     split_part(split_part(querytxt,'tdb=', 2), ' ', 1) as qrynum, 
-    concurrency_scaling_status, 
+    case
+        when concurrency_scaling_status = 1 then 'scaled'
+        else 'primary'
+    end as concurrency_scaling, 
     count(*) 
 from STL_QUERY 
 where 
-    starttime > '2022-12-29 19:09:35' 
+    starttime > '2023-01-28 16:36:51' 
     and querytxt like '%tdb=%' 
 group by 
     qrynum, 
-    concurrency_scaling_status;
+    concurrency_scaling_status
+order by 1, 3 desc;
 ```
 
 </details>
@@ -1145,7 +1149,9 @@ create external database if not exists;
 unload ('select * from public.customer')
 to 's3://mcg-tdc2/tpch/30gb/spectrum/customer' 
 iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole'
-csv;
+csv allowoverwrite;
+
+drop table ext.customer;
 
 create external table ext.customer (
 	c_custkey bigint,
@@ -1164,7 +1170,7 @@ with serdeproperties (
     'escapeChar' = '\\'
 )
 stored as textfile
-location 's3://mcg-tdc2/tpch/30gb/spectrum/customer';
+location 's3://mcg-tdc2/tpch/30gb/spectrum/';
  
 select * from public.customer;
 select * from ext.customer;
@@ -1177,6 +1183,42 @@ select * from ext.customer;
 <details>
 
 ```sql
+select  
+/* tdb=TPCH_Q19 */
+sum(l_extendedprice* (1 - l_discount)) as revenue
+from lineitem,
+ parttbl
+where 	
+    (
+		p_partkey = l_partkey
+		and p_brand = 'BRAND#11'
+		and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+		and l_quantity >= 4 and l_quantity <= 4 + 10
+		and p_size between 1 and 5
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	)
+	or
+	(
+		p_partkey = l_partkey
+		and p_brand = 'BRAND#33'
+		and p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+		and l_quantity >= 19 and l_quantity <= 19 + 10
+		and p_size between 1 and 10
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	)
+	or
+	(
+		p_partkey = l_partkey
+		and p_brand = 'BRAND#35'
+		and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
+		and l_quantity >= 25 and l_quantity <= 25 + 10
+		and p_size between 1 and 15
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	);
+
 select 
     split_part(split_part(querytxt,'tdb=', 2), ' ', 1) as qrynum, 
     plannode,
