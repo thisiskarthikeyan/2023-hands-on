@@ -730,10 +730,16 @@ Requires PSQL CLI
 Works with Provisioned Clusters only
 
 ```bash
+export PGHOST=<your cluster>.c3r0s0svrewi.us-east-1.redshift.amazonaws.com
+```
+
+```bash
+export PGUSER=<your username>
+```
+
+```bash
 export PGDATABASE=tpch
-export PGHOST=tdalpha.c3r0s0svrewi.us-east-1.redshift.amazonaws.com
 export PGPORT=5439
-export PGUSER=tdalpha
 export PGPASSWORD=17095ViaDelCampo
 psql -v qid=<query ID> -f rs-sqlmon.sql > <outfile>.html
 ```
@@ -1021,7 +1027,7 @@ order by segment, step;
 
 ```sql
 set enable_result_cache_for_session to off;
-alter user benchmark set enable_result_cache_for_session to off;
+alter user <your username> set enable_result_cache_for_session to off;
 ```
 
 </details>
@@ -1033,28 +1039,17 @@ alter user benchmark set enable_result_cache_for_session to off;
 <details>
 
 ```sql
-alter table ordertbl alter sortkey auto;
-alter table ordertbl alter diststyle auto;
-
-alter table lineitem alter sortkey auto;
-alter table lineitem alter diststyle auto;
-
 create schema keys;
 set search_path to keys;
 
 create table customer as select * from public.CUSTOMER;
-create table lineitem as select * from public.LINEITEM;
+create table lineitem diststyle key distkey (l_orderkey) sortkey (l_shipdate) as select * from public.LINEITEM;
 create table nation as select * from public.NATION;
-create table ordertbl as select * from public.ORDERTBL;
+create table ordertbl diststyle key distkey (o_orderkey) sortkey (o_orderdate) as select * from public.ORDERTBL;
 create table parttbl as select * from public.PARTTBL;
 create table partsupp as select * from public.PARTSUPP;
 create table region as select * from public.REGION;
 create table supplier as select * from public.SUPPLIER;
-
-alter table ordertbl alter sortkey (o_orderdate);
-alter table lineitem alter sortkey (l_shipdate);
-alter table ordertbl alter diststyle key distkey o_orderkey;
-alter table lineitem alter diststyle key distkey l_orderkey;
 ```
 
 </details>
