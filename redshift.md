@@ -1243,6 +1243,11 @@ where
 <details>
 
 ```sql
+set search_path to keys;
+
+drop materialized view mv_q18;
+
+drop masking policy name_mask;
 create masking policy name_mask
 with (c_name varchar(25))
 using ('********');
