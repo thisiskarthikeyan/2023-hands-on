@@ -508,7 +508,7 @@ OFF by default!
 ```sql
 use master;
 
-alter database tdalphasql set result_set_caching off;
+alter database <your database> set result_set_caching off;
 ```
 
 </details>
@@ -518,7 +518,7 @@ alter database tdalphasql set result_set_caching off;
 <details>
 
 ```sql
-reate materialized view mv_q18
+create materialized view mv_q18
 with (distribution = hash(l_orderkey))
 as
 select
