@@ -2,7 +2,7 @@
 # BigQuery
 
 ## Login
-https://console.cloud.google.com/welcome?project=striking-domain-287814
+https://console.cloud.google.com/bigquery?project=striking-domain-287814
 
 ### Gcloud Auth, Create a Dataset, and BigQuery CLI Config
 
