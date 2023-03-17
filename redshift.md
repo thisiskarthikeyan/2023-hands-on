@@ -721,306 +721,6 @@ select * from STL_QUERY; -- Provisioned Clusters only
 
 </details>
 
-### Query Profiles
-
-<details>
-
-Requires PSQL CLI
-
-Works with Provisioned Clusters only
-
-```bash
-export PGHOST=<your cluster>.c3r0s0svrewi.us-east-1.redshift.amazonaws.com
-```
-
-```bash
-export PGUSER=<your username>
-```
-
-```bash
-export PGDATABASE=tpch
-export PGPORT=5439
-export PGPASSWORD=17095ViaDelCampo
-psql -v qid=<query ID> -f rs-sqlmon.sql > <outfile>.html
-```
-
-rs-sqlmon.sql
-
-```sql
-\H
-
-\echo '<html>'
-\echo '<head>'
-\echo '<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">'
-\echo '<meta name="generator" content="SQL*Plus 12.2.0">'
-\echo '<style type='text/css'>  body {  font:10pt Arial,Helvetica,sans-serif;  color:blue; background:white; }  '
-\echo ' p {  font:8pt Arial,sans-serif;  color:grey; background:white; }  table,tr,td {  font:10pt Arial,Helvetica,sans-serif;  white-space:pre;  color:Black; background:white;  padding:0px 0px 0px 0px; margin:0px 0px 0px 0px; } '
-\echo ' th {  font:bold 10pt Arial,Helvetica,sans-serif;  color:#336699;  background:#cccc99;  padding:0px 0px 0px 0px;} ' 
-\echo ' h1 {  font:16pt Arial,Helvetica,Geneva,sans-serif;  color:#336699;  background-color:White;  border-bottom:1px solid #cccc99;  margin-top:0pt; margin-bottom:0pt; padding:0px 0px 0px 0px;} '
-\echo ' h2 {  font:bold 10pt Arial,Helvetica,Geneva,sans-serif;  color:#336699;  background-color:White;  margin-top:4pt; margin-bottom:0pt;} '
-\echo ' a {  font:9pt Arial,Helvetica,sans-serif;  color:#663300;  background:#ffffff;  margin-top:0pt; margin-bottom:0pt; vertical-align:top;}  .threshold-critical {  font:bold 10pt Arial,Helvetica,sans-serif;  color:red; } '
-\echo ' .threshold-warning {  font:bold 10pt Arial,Helvetica,sans-serif;  color:orange; }  .threshold-ok {  font:bold 10pt Arial,Helvetica,sans-serif;  color:green; }  </style>'
-\echo '<title>Redshift SQL Monitor Report</title>'
-\echo '</head>'
-\echo '<body>'
-
---Query 1
-SELECT text "Query"
-FROM stl_querytext
-  --where workload='&&1'
-  --and label='&&2'
-WHERE query=:qid
-ORDER BY sequence;
-
-
---Query 2
-SELECT ROUND(WallTime,2) "Wall Time (sec)",
-  slices "Slices",
-  DbTimeQry "DB Time (sec)",
-  CpuQry "CPU Time (sec)",
-  OtherTime "Other Time (sec)",
-  DbTimeLongestSeg "DB Time (sec) Longest Seg",
-  CpuLongestSeg "CPU Time (sec) Longest Seg"
-FROM
-  /* Wall time is calculated by summing the max elapsed times per stream.  Redshift executes different parts
-  of the query in segments and steps and processes a stream at a time.
-  See http://docs.aws.amazon.com/redshift/latest/dg/reviewing-query-plan-steps.html */
-  --  (SELECT 86400*(endtime-starttime) WallTime
-  (
-  SELECT extract(millisecond FROM (endtime-starttime))/1000 WallTime,
-    query
-  FROM stl_query
-    --      WHERE workload='&&1'
-    --      AND label     ='&&2'
-  WHERE query=:qid
-  ) a ,
-  (
-  /* The elapsed and cpu times for the sum of what each slice is responsible for doing is
-  in stl_metrics.  See http://docs.aws.amazon.com/redshift/latest/dg/r_STL_QUERY_METRICS.html */
-  SELECT slices,
-    ROUND(cpu_time    /1000000.0,2) CpuQry,
-    ROUND(max_cpu_time/1000000.0,2) CpuLongestSeg,
-    ROUND(run_time    /1000000.0,2) DbTimeQry,
-    ROUND(max_run_time/1000000.0,2) DbTimeLongestSeg,
-    ROUND((run_time   /1000000.0 - cpu_time/1000000.0),2) OtherTime,
-    query
-  FROM stl_query_metrics
-  WHERE --workload='&&1'
-    --AND
-    --seg = -1
-    segment= -1
-  AND step = -1
-    --AND label     = '&&2'
-  AND query=:qid
-  ) b
-  --WHERE a.query=b.query(+)
-  ;
-  
-  
---Query 3
-with total_ela as
-(select date_diff('microseconds'::text, min(start_time),max(end_time)) total_ela from svl_query_report where query=:qid
-)
-select e.nodeid "Plan Line",
-  e.parentid "Parent Line",
-  rtrim(e.plannode, ' ') "Operation",
-  round(date_diff('microseconds'::text,min_start_time,max_end_time)/1000000.0,2) "Elapsed Time(s)",
-  rpad(' ',(date_diff('microseconds'::text,min_start_time,max_end_time)/(total_ela.total_ela/20))::INTEGER ,'*') "Activity" ,
-  qstats.slices,
-  qstats.rows "Rows (est)",
-  qstats.srows "Rows (act)",
-  qstats.max_rows "Rows/slice (Max)",
-  qstats.min_rows "Rows/slice (Min)",
-  qstats.arows "Rows/slice (Avg)",
-  qstats.skew_rows "Row/slice Skew",
-  round(qstats.max_ela/1000000.0,2) "Elps/slice (Max)",
-  round(qstats.min_ela/1000000.0,2) "Elps/slice (Min)",
-  round(qstats.avg_ela/1000000.0,2) "Elps/slice (Avg)",
-  qstats.skew_ela "Elps/slice Skew",
-  rtrim(e.info, ' ') "Plan Line Info"
-from
-(
-SELECT pi.userid, 
-      pi.nodeid,
-      pi.query,
---      qr.start_time,
---      qr.end_time,
-      qr.slice,
-      qr.step,
-      qr.rows,
-      qr.elapsed_time,
-      qr.label,
-      count(slice) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING) slices,
-      row_number() over (partition BY pi.nodeid order by qr.segment desc, qr.step desc) rn,
-      sum(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) srows,
-      avg(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) arows,
-      min(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) min_rows,
-      max(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) max_rows,
-      round(stddev(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ),2) skew_rows,
-      min(qr.elapsed_time) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) min_ela,
-      max(qr.elapsed_time) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) max_ela,
-      avg(qr.elapsed_time) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) avg_ela,
-      round(stddev(qr.elapsed_time) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ),2) skew_ela,
-      min(qr.start_time) over (partition BY pi.nodeid order by qr.start_time rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) min_start_time,
-      max(qr.end_time) over (partition BY pi.nodeid order by qr.start_time rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) max_end_time
-    FROM svl_query_report qr,
-      stl_plan_info pi
-    WHERE
-      pi.userid  = qr.userid
-    AND pi.query = qr.query
-    AND pi.segment = qr.segment
-    AND pi.step    = qr.step
-    AND pi.query=:qid
-    and pi.nodeid!=1
-    union all
-SELECT pi.userid, 
-      pi.nodeid,
-      pi.query,
---      qr.start_time,
---      qr.end_time,
-      qr.slice,
-      qr.step,
-      qr.rows,
-      qr.elapsed_time,
-      qr.label,
-      count(slice) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING) slices,
-      row_number() over (partition BY pi.nodeid order by qr.segment desc, qr.step desc) rn,
-      sum(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) srows,
-      avg(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) arows,
-      min(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) min_rows,
-      max(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) max_rows,
-      round(stddev(qr.rows) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ),2) skew_rows,
-      min(qr.elapsed_time) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) min_ela,
-      max(qr.elapsed_time) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) max_ela,
-      avg(qr.elapsed_time) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) avg_ela,
-      round(stddev(qr.elapsed_time) over (partition BY pi.nodeid,qr.segment,qr.step order by qr.segment desc, qr.step desc rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ),2) skew_ela,
-      min(qr.start_time) over (partition BY pi.nodeid order by qr.start_time rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) min_start_time,
-      max(qr.end_time) over (partition BY pi.nodeid order by qr.start_time rows between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING ) max_end_time
-    FROM svl_query_report qr,
-      (select distinct nodeid,userid, query, segment from stl_plan_info where nodeid=1 and query=:qid) pi
-    WHERE
-      pi.userid  = qr.userid
-    AND pi.query = qr.query
-    AND pi.segment = qr.segment
---    AND pi.nodeid    = 1
---    AND pi.query=:qid
-) qstats, stl_explain e,total_ela
-where qstats.userid=e.userid and
-qstats.query=e.query and
-qstats.nodeid=e.nodeid and
-qstats.query=e.query and
-qstats.rn=1 
- ORDER BY qstats.nodeid
- ;
-
-
---Query 4
-/* Redshift executes steps in parallel in streams.  This query shows which streams were used in which lines of the plan. */
-WITH qstms AS
-  (SELECT nodeid,
-    procpernode,
-    '{ '
-    ||listagg(stm,',') within GROUP (
-  ORDER BY stm)
-    ||' }' stms
-  FROM
-    ( SELECT DISTINCT nodeid,
-      stm,
-      MAX(procpersliceperstm * slicespernode) over (partition BY nodeid) procpernode
-    FROM
-      (SELECT nodeid,
-        slice,
-        segment,
-        stm,
-        MAX(procpersliceperstm) over (partition BY nodeid,stm) procpersliceperstm,
-        MAX(slicespernode) over (partition BY nodeid ) slicespernode
-      FROM
-        (SELECT pi.nodeid,
-          qr.slice,
-          qr.segment,
-          qs.stm,
-          --        COUNT(Distinct qr.segment) over (partition BY pi.nodeid,qs.stm) procpersliceperstm,
-          --        COUNT(Distinct qr.slice) over (partition BY pi.nodeid) slicespernode
-          dense_rank() over (partition BY pi.nodeid,qs.stm order by qr.segment) procpersliceperstm,
-          dense_rank() over (partition BY pi.nodeid order by qr.slice) slicespernode
-        FROM stl_plan_info pi,
-          svl_query_report qr,
-          svl_query_summary qs
-        WHERE --pi.workload = qr.workload
-          --AND
-          pi.userid  = qr.userid
-        AND pi.query = qr.query
-          --      AND pi.label      = qr.label
-        AND pi.segment = qr.segment
-        AND pi.step    = qr.step
-          --      AND pi.workload   = qs.workload
-        AND pi.userid = qs.userid
-        AND pi.query  = qs.query
-          --      AND pi.label      = qs.label
-        AND pi.segment = qs.seg
-        AND pi.step    = qs.step
-          --AND pi.workload   ='&&1'
-          --AND pi.label      = '&&2'
-        AND pi.query=:qid
-        ORDER BY pi.nodeid,
-          qr.slice,
-          qr.segment,
-          qs.stm
-        )
-      )
-    )
-  GROUP BY nodeid,
-    procpernode
-  ORDER BY nodeid
-  )
-SELECT qplan.nodeid "Plan Line",
-  rtrim(qplan.plannode, ' ') "Operation",
-  qstms.stms Streams,
-  qstms.procpernode "Processes Across All Slices"
-FROM qstms ,
-  stl_explain qplan
-WHERE qplan.nodeid = qstms.nodeid
-  --AND qplan.workload ='&&1'
-  --AND qplan.label    = '&&2'
-AND qplan.query=:qid
-ORDER BY 1;
-
---Query 5
-SELECT *
-FROM svl_query_report
-  --where workload='&&1'
-  --and label='&&2'
-WHERE query=:qid
-ORDER BY segment, step, elapsed_time, rows;
-
---Query 6
-SELECT *
-FROM svl_query_summary
-WHERE query=:qid
-ORDER BY stm, seg, step;
-
---Query 7
-SELECT *
-FROM stl_plan_info
-WHERE query=:qid
-ORDER BY nodeid desc;
-
---Query 8 (check data skew)
-select query, segment, step, max(rows), min(rows),
-case when sum(rows) > 0
-then ((cast(max(rows) -min(rows) as float)*count(rows))/sum(rows))
-else 0 end
-from svl_query_report
-where query=:qid
-group by query, segment, step
-order by segment, step;
-
-\echo '</body>'
-\echo '</html>'
-```
-
-</details>
-
 ### Results Cache
 
 <details>
@@ -1133,51 +833,6 @@ limit 100;
 
 </details>
 
-## Usability Features
-
-### Redshift Spectrum (External Tables)
-
-<details>
-
-```sql
-create external schema ext 
-from data catalog 
-database 'extdb' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole' 
-create external database if not exists;
-
-unload ('select * from public.customer')
-to 's3://mcg-tdc2/tpch/30gb/spectrum/customer' 
-iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole'
-csv allowoverwrite;
-
-drop table ext.customer;
-
-create external table ext.customer (
-	c_custkey bigint,
-	c_name varchar(25),
-	c_address varchar(40),
-	c_nationkey integer,
-	c_phone char(15),
-	c_acctbal decimal(15,2),
-	c_mktsegment char(10),
-	c_comment varchar(117)
-) 
-row format serde 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
-with serdeproperties (
-    'separatorChar' = ',',
-    'quoteChar' = '\"',
-    'escapeChar' = '\\'
-)
-stored as textfile
-location 's3://mcg-tdc2/tpch/30gb/spectrum/';
- 
-select * from public.customer;
-select * from ext.customer;
-```
-
-</details>
-
 ### AutoMV
 
 <details>
@@ -1234,6 +889,51 @@ where
         plannode like '%auto_mv%'
         or info like '%auto_mv%'
     );
+```
+
+</details>
+
+## Usability Features
+
+### Redshift Spectrum (External Tables)
+
+<details>
+
+```sql
+create external schema ext 
+from data catalog 
+database 'extdb' 
+iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole' 
+create external database if not exists;
+
+unload ('select * from public.customer')
+to 's3://mcg-tdc2/tpch/30gb/spectrum/customer' 
+iam_role 'arn:aws:iam::791221762878:role/mySpectrumRole'
+csv allowoverwrite;
+
+drop table ext.customer;
+
+create external table ext.customer (
+	c_custkey bigint,
+	c_name varchar(25),
+	c_address varchar(40),
+	c_nationkey integer,
+	c_phone char(15),
+	c_acctbal decimal(15,2),
+	c_mktsegment char(10),
+	c_comment varchar(117)
+) 
+row format serde 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+with serdeproperties (
+    'separatorChar' = ',',
+    'quoteChar' = '\"',
+    'escapeChar' = '\\'
+)
+stored as textfile
+location 's3://mcg-tdc2/tpch/30gb/spectrum/';
+ 
+select * from public.customer;
+select * from ext.customer;
 ```
 
 </details>

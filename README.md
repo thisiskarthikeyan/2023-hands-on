@@ -2,11 +2,11 @@
 
 Welcome to the 2023 Competitive Hands-On Training for the following cloud data warehouse platforms.  Follow the following link to the SQL and bash scripts we will use in the course:
 
-- [Snowflake](snowflake.md)
 - [Amazon Redshift](redshift.md)
 - [Google BigQuery](bigquery.md)
-- [Azure Synapse Analytics](synapse.md)
 - [Databricks](databricks.md)
+- [Azure Synapse Analytics](synapse.md)
+- [Snowflake](snowflake.md)
 
 ## Handouts
 
