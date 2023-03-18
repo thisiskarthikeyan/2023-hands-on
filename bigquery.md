@@ -1341,7 +1341,7 @@ ORDER BY
 <details>
 
 ```sql
-create materialized view tdalpha.MV_Q18
+create or replace materialized view tdalpha.MV_Q18
 as
 select
    l_orderkey, 
