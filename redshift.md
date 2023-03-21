@@ -313,7 +313,7 @@ order by s_name;
 
 
 select 
-/* tdb=TPCH_Q02 */
+/* tdb=TPCH_Q02  pie chart */
  s_acctbal,
  s_name,
  n_name,
