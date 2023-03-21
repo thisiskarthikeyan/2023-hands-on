@@ -4,6 +4,11 @@
 ## Login
 https://791221762878.signin.aws.amazon.com/console
 
+AWS Account ID
+```
+791221762878
+```
+
 Then use the search bar to find Redshift.
 
 ## Basic Functionality
